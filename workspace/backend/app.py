@@ -74,5 +74,35 @@ def transcribe():
             os.remove(audio_path)
     return jsonify({'transcription': transcription})
 
+@app.route('/ask', methods=['POST'])
+def ask():
+    data = request.get_json()
+    transcript = data.get('transcript')
+    question = data.get('question')
+    if not transcript or not question:
+        return jsonify({'error': 'Transcript and question are required.'}), 400
+    prompt = f"Transcript:\n{transcript}\n\nQuestion: {question}\nAnswer:"
+    headers = {
+        'api-key': get_env_var('AZURE_GPT_KEY'),
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'messages': [
+            {"role": "system", "content": "You are a helpful assistant that answers questions based only on the provided transcript."},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = requests.post(
+        get_env_var('AZURE_GPT_ENDPOINT'),
+        headers=headers,
+        json=payload
+    )
+    if response.ok:
+        data = response.json()
+        answer = data['choices'][0]['message']['content']
+        return jsonify({'answer': answer})
+    else:
+        return jsonify({'error': response.text}), response.status_code
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
