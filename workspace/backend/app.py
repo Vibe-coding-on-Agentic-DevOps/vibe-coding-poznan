@@ -61,18 +61,58 @@ def transcribe():
             response = requests.post(
                 AZURE_OPENAI_ENDPOINT,
                 headers=headers,
-                files=files
+                files=files,
+                data={'response_format': 'verbose_json'}
             )
             if response.ok:
                 data = response.json()
+                print('Whisper response:', data)  # Debug print
                 transcription = data.get('text', '')
+                segments = data.get('segments', [])
+                word_segments = []
+                has_words = False
+                for seg in segments:
+                    if 'words' in seg and seg['words']:
+                        has_words = True
+                        for word in seg['words']:
+                            word_segments.append({
+                                'text': word['word'],
+                                'start': word['start'],
+                                'end': word['end']
+                            })
+                # If word-level is not available, split segment text into small chunks (e.g., 3 words) and estimate timings
+                if not has_words:
+                    chunk_size = 3  # You can adjust this for finer or coarser chunks
+                    for seg in segments:
+                        words = seg.get('text', '').split()
+                        start = seg.get('start', 0)
+                        end = seg.get('end', 0)
+                        if not words:
+                            continue
+                        duration = (end - start) / max(len(words), 1) if end > start else 0
+                        for i in range(0, len(words), chunk_size):
+                            chunk_words = words[i:i+chunk_size]
+                            chunk_start = start + (i * duration)
+                            chunk_end = chunk_start + (len(chunk_words) * duration)
+                            word_segments.append({
+                                'text': ' '.join(chunk_words),
+                                'start': chunk_start,
+                                'end': chunk_end
+                            })
+                if not word_segments:
+                    # Fallback: single segment for the whole transcription
+                    word_segments = [{
+                        'text': transcription,
+                        'start': 0,
+                        'end': 0
+                    }]
             else:
                 return jsonify({'error': response.text}), response.status_code
     finally:
         os.remove(filepath)
         if temp_audio_created and os.path.exists(audio_path):
             os.remove(audio_path)
-    return jsonify({'transcription': transcription})
+    return jsonify({'transcription': transcription, 'segments': word_segments})
 
 @app.route('/ask', methods=['POST'])
 def ask():
