@@ -1,0 +1,141 @@
+body {
+  background: linear-gradient(135deg, #181a1b 0%, #23272b 100%);
+  color: #f1f1f1;
+  min-height: 100vh;
+}
+
+h2 {
+  color: #f1f1f1;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px #000a;
+  margin-bottom: 2rem;
+}
+
+h5, label, .form-label {
+  color: #f1f1f1;
+}
+
+.container {
+  background: rgba(30, 32, 34, 0.95);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  padding: 2.5rem 2rem 2rem 2rem;
+  max-width: 600px;
+}
+
+.alert-success, .alert-primary {
+  background-color: #23272b;
+  color: #f1f1f1;
+  border-color: #343a40;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #0002;
+}
+
+.alert-danger {
+  background-color: #3a1a1a;
+  color: #f1f1f1;
+  border-color: #a94442;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #0002;
+}
+
+.transcript-box {
+  background: #23272b;
+  color: #f1f1f1;
+  border: 1px solid #343a40;
+  border-radius: 12px;
+  padding: 1.5rem 1rem 1rem 1rem;
+  font-size: 1.15rem;
+  max-height: 350px;
+  min-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  margin-bottom: 0;
+  box-shadow: 0 2px 8px #0002;
+  transition: box-shadow 0.2s;
+}
+.transcript-box:hover {
+  box-shadow: 0 4px 16px #0004;
+}
+
+.answer-box {
+  background: #23272b;
+  color: #f1f1f1;
+  border: 1px solid #343a40;
+  border-radius: 12px;
+  padding: 1.5rem 1rem 1rem 1rem;
+  font-size: 1.15rem;
+  max-height: 350px;
+  min-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  margin-bottom: 0;
+  box-shadow: 0 2px 8px #0002;
+  transition: box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+.answer-box:hover {
+  box-shadow: 0 4px 16px #0004;
+}
+
+input[type="file"].form-control {
+  background-color: #23272b;
+  color: #f1f1f1;
+  border: 1px solid #343a40;
+  border-radius: 8px;
+}
+
+input[type="file"].form-control::file-selector-button {
+  background: linear-gradient(90deg, #343a40 0%, #495057 100%);
+  color: #f1f1f1;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4em 1.2em;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+input[type="file"].form-control::file-selector-button:hover {
+  background: linear-gradient(90deg, #495057 0%, #343a40 100%);
+}
+
+button.btn-primary, button.btn-info {
+  background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px #0002;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+button.btn-primary:hover, button.btn-info:hover {
+  background: linear-gradient(90deg, #0056b3 0%, #007bff 100%);
+  box-shadow: 0 4px 16px #0004;
+}
+
+.form-control[type="text"], input[type="text"].form-control, input.form-control[type="text"] {
+  background: #23272b !important;
+  color: #f1f1f1 !important;
+  border: 1px solid #343a40 !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px #0002;
+  font-size: 1.1rem;
+}
+.form-control[type="text"]:focus, input[type="text"].form-control:focus, input.form-control[type="text"]:focus {
+  background: #23272b !important;
+  color: #fff !important;
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #23272b;
+}
+::-webkit-scrollbar-thumb {
+  background: #343a40;
+  border-radius: 8px;
+}
