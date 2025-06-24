@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Container, Form, Button, Alert, Spinner, InputGroup, Nav } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import DatabaseSearch from './DatabaseSearch';
+import DatabaseGallery from './DatabaseGallery';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -283,7 +284,7 @@ function App() {
         <div style={{ flex: 3, minWidth: 0 }}>
           {(segments.length > 0 || transcription) && (
             <>
-              <div style={{ display: 'flex', alignItems: 'flex-end', height: 36 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', height: 36, marginTop: 24 }}>
                 <span style={{
                   background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)', // match choose file gradient
                   color: '#f1f1f1', // match file input button text
@@ -300,44 +301,27 @@ function App() {
                   letterSpacing: '0.5px',
                   zIndex: 2,
                   position: 'relative',
-                }}>Meeting Transcript:</span>
+                }}>Answer:</span>
               </div>
-              <div className="transcript-box" style={{
-                maxHeight: 350,
+              <div className="answer-box mt-0" style={{
+                maxHeight: 180, // reduced height
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 whiteSpace: 'pre-wrap',
                 fontFamily: 'inherit',
                 fontSize: '1.15rem',
-                marginTop: 0,
                 border: '1px solid #343a40',
-                borderTopLeftRadius: 0, // remove top left radius
-                borderTopRightRadius: 0, // remove top right radius
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
                 borderBottomLeftRadius: 10,
                 borderBottomRightRadius: 10,
                 background: '#23272b',
                 position: 'relative',
                 zIndex: 1,
+                marginTop: 0, // remove extra margin
+                padding: 10, // less padding
               }}>
-                <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>
-                  {segments.length > 0
-                    ? segments.map((seg, idx) => (
-                        <span
-                          key={idx}
-                          style={{ background: idx === activeSegment ? '#007bff55' : searchResults.some(r => r.idx === idx) ? '#ffe06699' : 'transparent', borderRadius: 4, transition: 'background 0.2s', cursor: 'pointer' }}
-                          onClick={() => {
-                            const video = document.querySelector('video');
-                            if (video) {
-                              video.currentTime = seg.start;
-                              video.play();
-                            }
-                          }}
-                        >
-                          {seg.text + ' '}
-                        </span>
-                      ))
-                    : transcription}
-                </div>
+                <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>{answer}</div>
               </div>
             </>
           )}

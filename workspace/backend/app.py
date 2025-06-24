@@ -5,6 +5,8 @@ import os
 import requests
 from dotenv import load_dotenv
 from models import db, Transcription
+from werkzeug.utils import secure_filename
+import hashlib
 
 # Load .env at the very top
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -26,6 +28,57 @@ CORS(app)
 with app.app_context():
     db.create_all()
 
+@app.route('/files', methods=['GET'])
+def list_files():
+    files = Transcription.query.order_by(Transcription.created_at.desc()).all()
+    return jsonify({'files': [f.to_dict() for f in files]})
+
+@app.route('/files', methods=['POST'])
+def add_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    filename = secure_filename(file.filename)
+    file_content = file.read()
+    file_hash = hashlib.sha256(file_content).hexdigest()
+    file_size = len(file_content)
+    # Check for duplicate by filename
+    existing = Transcription.query.filter_by(filename=filename).first()
+    if existing and existing.file_hash == file_hash and existing.file_size == file_size:
+        # If hash and size match, skip and return error
+        return jsonify({'error': 'File already exists.'}), 409
+    elif existing:
+        # Otherwise, rename
+        base, ext = os.path.splitext(filename)
+        i = 1
+        while True:
+            new_filename = f"{base}_{i}{ext}"
+            if not Transcription.query.filter_by(filename=new_filename).first():
+                filename = new_filename
+                break
+            i += 1
+    # Save as a new record (no transcription)
+    new_transcription = Transcription(
+        filename=filename,
+        transcription="",
+        file_hash=file_hash,
+        file_size=file_size
+    )
+    db.session.add(new_transcription)
+    db.session.commit()
+    return jsonify({'file': new_transcription.to_dict()})
+
+@app.route('/files/<int:file_id>', methods=['DELETE'])
+def delete_file(file_id):
+    t = Transcription.query.get(file_id)
+    if not t:
+        return jsonify({'error': 'File not found'}), 404
+    db.session.delete(t)
+    db.session.commit()
+    return jsonify({'success': True})
+
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     if 'file' not in request.files:
@@ -33,19 +86,57 @@ def transcribe():
     file = request.files['file']
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
-    # Accept .mkv and other video files
     allowed_extensions = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.mpeg', '.mpg'}
     audio_extensions = {'.flac', '.m4a', '.mp3', '.mp4', '.mpeg', '.mpga', '.oga', '.ogg', '.wav', '.webm'}
     _, ext = os.path.splitext(file.filename.lower())
     if ext not in allowed_extensions:
         return jsonify({'error': f'File type {ext} not supported. Allowed: {', '.join(allowed_extensions)}'}), 400
+    filename = secure_filename(file.filename)
+    file_content = file.read()
+    file_hash = hashlib.sha256(file_content).hexdigest()
+    file_size = len(file_content)
+    # Check for duplicate by filename
+    existing = Transcription.query.filter_by(filename=filename).first()
+    if existing and existing.file_hash == file_hash and existing.file_size == file_size and existing.transcription:
+        # Return the existing transcription and segments as a list of chunks (simulate segments for UI)
+        words = existing.transcription.split()
+        chunk_size = 3
+        word_segments = []
+        for i in range(0, len(words), chunk_size):
+            chunk_words = words[i:i+chunk_size]
+            word_segments.append({
+                'text': ' '.join(chunk_words),
+                'start': i,  # fake start
+                'end': i + len(chunk_words)  # fake end
+            })
+        if not word_segments:
+            word_segments = [{
+                'text': existing.transcription,
+                'start': 0,
+                'end': 0
+            }]
+        # Also include the filename in the response for frontend clarity
+        return jsonify({'transcription': existing.transcription, 'segments': word_segments, 'filename': existing.filename}), 200
+    elif existing and existing.file_hash == file_hash and existing.file_size == file_size:
+        # Return empty transcription (should not happen, but for safety)
+        return jsonify({'transcription': existing.transcription, 'segments': []}), 200
+    elif existing:
+        # If filename exists but is not a true duplicate, rename
+        base, ext2 = os.path.splitext(filename)
+        i = 1
+        while True:
+            new_filename = f"{base}_{i}{ext2}"
+            if not Transcription.query.filter_by(filename=new_filename).first():
+                filename = new_filename
+                break
+            i += 1
     # Save file temporarily
-    filepath = os.path.join('/tmp', file.filename)
-    file.save(filepath)
+    filepath = os.path.join('/tmp', filename)
+    with open(filepath, 'wb') as f:
+        f.write(file_content)
     audio_path = filepath
     temp_audio_created = False
     if ext not in audio_extensions:
-        # Convert to mp3 using ffmpeg
         audio_path = filepath + '.mp3'
         temp_audio_created = True
         import subprocess
@@ -57,7 +148,6 @@ def transcribe():
             os.remove(filepath)
             return jsonify({'error': 'Failed to extract audio from video.'}), 500
     try:
-        # Send audio to Azure OpenAI Whisper
         with open(audio_path, 'rb') as audio_file:
             headers = {
                 'api-key': AZURE_OPENAI_KEY,
@@ -73,7 +163,6 @@ def transcribe():
             )
             if response.ok:
                 data = response.json()
-                print('Whisper response:', data)  # Debug print
                 transcription = data.get('text', '')
                 segments = data.get('segments', [])
                 word_segments = []
@@ -115,8 +204,10 @@ def transcribe():
                     }]
                 # Save transcription to database
                 new_transcription = Transcription(
-                    filename=file.filename,
-                    transcription=transcription
+                    filename=filename,
+                    transcription=transcription,
+                    file_hash=file_hash,
+                    file_size=file_size
                 )
                 db.session.add(new_transcription)
                 db.session.commit()
