@@ -79,9 +79,13 @@ def add_file():
 
 @app.route('/files/<int:file_id>', methods=['DELETE'])
 def delete_file(file_id):
-    t = Transcription.query.get(file_id)
+    t = db.session.get(Transcription, file_id)
     if not t:
         return jsonify({'error': 'File not found'}), 404
+    # Remove file from uploads directory
+    file_path = os.path.join(UPLOAD_FOLDER, t.filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
     db.session.delete(t)
     db.session.commit()
     return jsonify({'success': True})
