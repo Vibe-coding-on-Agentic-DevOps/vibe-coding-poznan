@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Container, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
+import { Container, Form, Button, Alert, Spinner, InputGroup, Nav } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import DatabaseSearch from './DatabaseSearch';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -17,6 +18,7 @@ function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [fileGroupFocused, setFileGroupFocused] = useState(false);
   const [qaGroupFocused, setQaGroupFocused] = useState(false);
+  const [page, setPage] = useState('transcribe');
   const fileInputRef = useRef(null);
   const questionInputRef = useRef(null);
 
@@ -136,8 +138,32 @@ function App() {
     }
   };
 
+  if (page === 'database') {
+    return (
+      <Container className="mt-5" style={{ maxWidth: 1200 }}>
+        <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4">
+          <Nav.Item>
+            <Nav.Link eventKey="transcribe">Transcribe</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="database">Database</Nav.Link>
+          </Nav.Item>
+        </Nav>
+        <DatabaseSearch />
+      </Container>
+    );
+  }
+
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
+      <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4">
+        <Nav.Item>
+          <Nav.Link eventKey="transcribe">Transcribe</Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="database">Database</Nav.Link>
+        </Nav.Item>
+      </Nav>
       <h2>Meeting Assistant</h2>
       <Form onSubmit={handleSubmit} style={{ marginBottom: 0 }}>
         <div style={{ borderRadius: 8, boxShadow: fileGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 1s' }}>

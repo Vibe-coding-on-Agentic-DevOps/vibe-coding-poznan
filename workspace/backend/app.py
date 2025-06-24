@@ -1,8 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 import os
 import requests
 from dotenv import load_dotenv
+from models import db, Transcription
 
 # Load .env at the very top
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -15,9 +17,14 @@ AZURE_OPENAI_KEY = get_env_var('AZURE_OPENAI_KEY')
 AZURE_OPENAI_DEPLOYMENT = get_env_var('AZURE_OPENAI_DEPLOYMENT')
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///transcriptions.db'
 # Increase max upload size to 500MB (adjust as needed)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
+db.init_app(app)
 CORS(app)
+
+with app.app_context():
+    db.create_all()
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
@@ -106,6 +113,13 @@ def transcribe():
                         'start': 0,
                         'end': 0
                     }]
+                # Save transcription to database
+                new_transcription = Transcription(
+                    filename=file.filename,
+                    transcription=transcription
+                )
+                db.session.add(new_transcription)
+                db.session.commit()
             else:
                 return jsonify({'error': response.text}), response.status_code
     finally:
@@ -129,6 +143,45 @@ def ask():
     payload = {
         'messages': [
             {"role": "system", "content": "You are a helpful assistant that answers questions based only on the provided transcript."},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = requests.post(
+        get_env_var('AZURE_GPT_ENDPOINT'),
+        headers=headers,
+        json=payload
+    )
+    if response.ok:
+        data = response.json()
+        answer = data['choices'][0]['message']['content']
+        return jsonify({'answer': answer})
+    else:
+        return jsonify({'error': response.text}), response.status_code
+
+@app.route('/search', methods=['GET'])
+def search_transcriptions():
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({'results': []})
+    results = Transcription.query.filter(Transcription.transcription.ilike(f'%{query}%')).all()
+    return jsonify({'results': [t.to_dict() for t in results]})
+
+@app.route('/ask-database', methods=['POST'])
+def ask_database():
+    data = request.get_json()
+    question = data.get('question')
+    if not question:
+        return jsonify({'error': 'Question is required.'}), 400
+    # Concatenate all transcriptions
+    all_transcripts = '\n\n'.join([t.transcription for t in Transcription.query.all()])
+    prompt = f"Database of transcripts:\n{all_transcripts}\n\nQuestion: {question}\nAnswer:"
+    headers = {
+        'api-key': get_env_var('AZURE_GPT_KEY'),
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'messages': [
+            {"role": "system", "content": "You are a helpful assistant that answers questions based only on the provided database of transcripts."},
             {"role": "user", "content": prompt}
         ]
     }
