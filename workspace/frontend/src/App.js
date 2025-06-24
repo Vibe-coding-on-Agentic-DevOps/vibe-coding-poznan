@@ -412,6 +412,27 @@ function App() {
       {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
       {transcription && (
         <Form onSubmit={handleAsk} className="mt-4" style={{ marginBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', height: 36, marginBottom: 0 }}>
+            <span style={{
+              background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)',
+              color: '#f1f1f1',
+              fontWeight: 600,
+              fontSize: '1.05rem',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              padding: '6px 18px 2px 18px',
+              border: '1px solid #343a40',
+              borderBottom: 'none',
+              marginLeft: 0,
+              marginBottom: 0,
+              boxShadow: '0 -2px 8px #0002',
+              letterSpacing: '0.5px',
+              zIndex: 2,
+              position: 'relative',
+            }}>Ask a question about the meeting</span>
+          </div>
           <div style={{ borderRadius: 6, boxShadow: qaGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 0.15s' }}>
             <InputGroup>
               <Form.Control
@@ -421,7 +442,15 @@ function App() {
                 onChange={e => setQuestion(e.target.value)}
                 placeholder="Ask a question about the meeting..."
                 disabled={qaLoading}
-                style={{ background: '#23272b', color: '#f1f1f1', boxShadow: 'none' }}
+                style={{
+                  background: '#23272b',
+                  color: '#f1f1f1',
+                  boxShadow: 'none',
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                  borderBottomLeftRadius: 10,
+                  borderBottomRightRadius: 10,
+                }}
                 onFocus={() => setQaGroupFocused(true)}
                 onBlur={() => setQaGroupFocused(false)}
               />
@@ -429,7 +458,14 @@ function App() {
                 variant="primary" 
                 type="submit" 
                 disabled={qaLoading} 
-                style={{ minWidth: 80, boxShadow: 'none' }}
+                style={{
+                  minWidth: 80,
+                  boxShadow: 'none',
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 10,
+                }}
                 onFocus={() => setQaGroupFocused(true)}
                 onBlur={() => setQaGroupFocused(false)}
                 onClick={e => e.target.blur()}

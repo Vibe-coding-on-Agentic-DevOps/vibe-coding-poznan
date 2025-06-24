@@ -11,6 +11,7 @@ function DatabaseSearch() {
   const [dbQaLoading, setDbQaLoading] = useState(false);
   const [searchGroupFocused, setSearchGroupFocused] = useState(false);
   const [qaGroupFocused, setQaGroupFocused] = useState(false);
+  const [askHover, setAskHover] = useState(false);
   const searchBlurTimeout = useRef(null);
   const qaBlurTimeout = useRef(null);
 
@@ -143,9 +144,23 @@ function DatabaseSearch() {
             variant="success"
             type="submit"
             disabled={dbQaLoading}
-            style={qaGroupFocused ? { minWidth: 100, borderColor: '#1976d2', zIndex: 2 } : { minWidth: 100 }}
+            style={{
+              minWidth: 100,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              background: askHover
+                ? 'linear-gradient(90deg, #218838 0%, #28a745 100%)'
+                : 'linear-gradient(90deg, #28a745 0%, #218838 100%)',
+              border: qaGroupFocused ? '2px solid #1976d2' : 'none',
+              color: '#f1f1f1',
+              boxShadow: askHover ? '0 4px 16px #0004' : '0 2px 8px #0002',
+              transition: 'background 0.2s, box-shadow 0.2s',
+              zIndex: qaGroupFocused ? 2 : undefined
+            }}
             onFocus={handleQaFocus}
             onBlur={handleQaBlur}
+            onMouseEnter={() => setAskHover(true)}
+            onMouseLeave={() => setAskHover(false)}
           >
             {dbQaLoading ? <Spinner animation="border" size="sm" /> : 'Ask'}
           </Button>
