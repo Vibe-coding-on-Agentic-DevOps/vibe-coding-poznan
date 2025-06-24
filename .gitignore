@@ -29,3 +29,7 @@ Thumbs.db
 # Misc
 *.swp
 *.swo
+
+# App data
+workspace/backend/instance/
+workspace/backend/uploads/
