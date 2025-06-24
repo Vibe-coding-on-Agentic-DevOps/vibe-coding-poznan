@@ -23,6 +23,7 @@ function App() {
   const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef(null);
   const questionInputRef = useRef(null);
+  const [hoveredSegment, setHoveredSegment] = useState(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -329,7 +330,18 @@ function App() {
                         ? segments.map((seg, idx) => (
                             <span
                               key={idx}
-                              style={{ background: idx === activeSegment ? '#007bff55' : searchResults.some(r => r.idx === idx) ? '#ffe06699' : 'transparent', borderRadius: 4, transition: 'background 0.2s', cursor: 'pointer' }}
+                              style={{
+                                background: idx === activeSegment
+                                  ? '#007bff55'
+                                  : hoveredSegment === idx
+                                  ? '#ffe06699'
+                                  : searchResults.some(r => r.idx === idx)
+                                  ? '#ffe06655'
+                                  : 'transparent',
+                                borderRadius: 4,
+                                transition: 'background 0.2s',
+                                cursor: 'pointer',
+                              }}
                               onClick={() => {
                                 const video = document.querySelector('video');
                                 if (video) {
@@ -337,6 +349,8 @@ function App() {
                                   video.play();
                                 }
                               }}
+                              onMouseEnter={() => setHoveredSegment(idx)}
+                              onMouseLeave={() => setHoveredSegment(null)}
                             >
                               {seg.text + ' '}
                             </span>
