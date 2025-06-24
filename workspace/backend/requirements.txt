@@ -2,4 +2,6 @@ Flask
 flask-cors
 requests
 python-dotenv
+SQLAlchemy
+flask-sqlalchemy
 # ffmpeg is required as a system dependency, not a Python package.
