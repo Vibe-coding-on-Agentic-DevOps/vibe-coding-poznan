@@ -142,14 +142,31 @@ function App() {
     }
   };
 
-  function handleTranscribeFileFromGallery(file) {
-    setFile(file);
-    setVideoUrl(URL.createObjectURL(file));
-    setPage('transcribe');
-    setFileInputKey(prev => prev + 1); // force file input to reset
-    setTimeout(() => {
-      handleSubmit({ preventDefault: () => {} });
-    }, 0);
+  async function handleTranscribeFileFromGallery(fileObj) {
+    // If fileObj has an id, fetch its transcription from the backend
+    if (fileObj && fileObj.id) {
+      setLoading(true);
+      setError('');
+      setTranscription('');
+      setAnswer('');
+      setQuestion('');
+      setSegments([]);
+      setActiveSegment(null);
+      setSearchTerm('');
+      setSearchResults([]);
+      setFile(null);
+      setPage('transcribe');
+      try {
+        // Get the video file URL for preview
+        setVideoUrl(`/files/${fileObj.id}/download`);
+        // Use the transcription from the fileObj
+        setTranscription(fileObj.transcription || '');
+        setSegments([]); // If you have segments, set them here
+      } catch {
+        setError('Failed to fetch transcription.');
+      }
+      setLoading(false);
+    }
   }
 
   return (
