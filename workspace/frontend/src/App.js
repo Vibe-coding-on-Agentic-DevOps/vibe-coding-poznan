@@ -23,7 +23,10 @@ function App() {
   const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef(null);
   const questionInputRef = useRef(null);
+  const videoRef = useRef(null);
   const [hoveredSegment, setHoveredSegment] = useState(null);
+  const [segmentWordCounts, setSegmentWordCounts] = useState([]); // NEW: store word count per segment
+  const totalWordsRef = useRef(0); // NEW: store total word count
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -158,17 +161,62 @@ function App() {
       setFile(null);
       setPage('transcribe');
       try {
-        // Get the video file URL for preview
         setVideoUrl(`/files/${fileObj.id}/download`);
-        // Use the transcription from the fileObj
         setTranscription(fileObj.transcription || '');
-        setSegments([]); // If you have segments, set them here
+        if (fileObj.segments && Array.isArray(fileObj.segments) && fileObj.segments.length > 0) {
+          setSegments(fileObj.segments);
+          setSegmentWordCounts([]);
+          totalWordsRef.current = 0;
+        } else if (fileObj.transcription) {
+          const words = fileObj.transcription.split(/\s+/).filter(Boolean);
+          const chunkSize = 3;
+          const duration = (fileObj.duration && !isNaN(fileObj.duration)) ? fileObj.duration : null;
+          let wordSegments = [];
+          let wordCounts = [];
+          for (let i = 0; i < words.length; i += chunkSize) {
+            const chunkWords = words.slice(i, i + chunkSize);
+            wordSegments.push({
+              text: chunkWords.join(' '),
+              start: i, // index-based for now
+              end: i + chunkWords.length
+            });
+            wordCounts.push(chunkWords.length);
+          }
+          setSegments(wordSegments);
+          setSegmentWordCounts(wordCounts);
+          totalWordsRef.current = words.length;
+        } else {
+          setSegments([]);
+          setSegmentWordCounts([]);
+          totalWordsRef.current = 0;
+        }
       } catch {
         setError('Failed to fetch transcription.');
       }
       setLoading(false);
     }
   }
+
+  // Helper to check if segments are index-based (not time-based)
+  function segmentsAreIndexBased(segments) {
+    return segments.length > 0 && typeof segments[0].start === 'number' && typeof segments[0].end === 'number' && segments[0].end <= totalWordsRef.current + 3;
+  }
+
+  // Handler for when video metadata is loaded (duration available)
+  const handleVideoLoadedMetadata = () => {
+    if (videoRef.current && segments.length > 0 && segmentsAreIndexBased(segments) && totalWordsRef.current > 0 && segmentWordCounts.length === segments.length) {
+      const duration = videoRef.current.duration;
+      let wordIdx = 0;
+      const newSegments = segments.map((seg, i) => {
+        const segWordCount = segmentWordCounts[i];
+        const start = (wordIdx / totalWordsRef.current) * duration;
+        const end = ((wordIdx + segWordCount) / totalWordsRef.current) * duration;
+        wordIdx += segWordCount;
+        return { ...seg, start, end };
+      });
+      setSegments(newSegments);
+    }
+  };
 
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
@@ -278,10 +326,12 @@ function App() {
           {videoUrl && (
             <div className="mt-4" style={{ width: '100%' }}>
               <video
+                ref={videoRef}
                 src={videoUrl}
                 controls
                 style={{ width: '100%', minHeight: 400, borderRadius: 12, background: '#23272b' }}
                 onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleVideoLoadedMetadata}
               />
             </div>
           )}
