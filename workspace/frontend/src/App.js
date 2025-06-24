@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Container, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import React, { useState, useRef } from 'react';
+import { Container, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
@@ -13,10 +13,12 @@ function App() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [activeSegment, setActiveSegment] = useState(null);
   const [segments, setSegments] = useState([]);
-  const videoRef = React.useRef(null);
-  const [hoveredSegment, setHoveredSegment] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [fileGroupFocused, setFileGroupFocused] = useState(false);
+  const [qaGroupFocused, setQaGroupFocused] = useState(false);
+  const fileInputRef = useRef(null);
+  const questionInputRef = useRef(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -28,6 +30,7 @@ function App() {
     setVideoUrl(file ? URL.createObjectURL(file) : null);
     setSegments([]);
     setActiveSegment(null);
+    setFileGroupFocused(false); // Remove blue backlight after file upload
   };
 
   const handleTimeUpdate = (e) => {
@@ -49,6 +52,7 @@ function App() {
     setTranscription('');
     setAnswer('');
     setQuestion('');
+    if (fileInputRef.current) fileInputRef.current.blur();
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -83,6 +87,7 @@ function App() {
     setQaLoading(true);
     setError('');
     setAnswer('');
+    if (questionInputRef.current) questionInputRef.current.blur();
     try {
       const response = await fetch('/ask', {
         method: 'POST',
@@ -132,58 +137,60 @@ function App() {
   };
 
   return (
-    <Container className="mt-5" style={{ maxWidth: 900 }}>
-      <h2>Video to Text Transcription</h2>
-      <div style={{ display: 'flex', gap: 32 }}>
-        <div style={{ flex: 2, minWidth: 0 }}>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group controlId="formFile" className="mb-3">
-              <Form.Label>Upload your meeting video</Form.Label>
-              <Form.Control type="file" accept="video/*" onChange={handleFileChange} />
-            </Form.Group>
-            <Button variant="primary" type="submit" disabled={loading}>
+    <Container className="mt-5" style={{ maxWidth: 1200 }}>
+      <h2>Meeting Assistant</h2>
+      <Form onSubmit={handleSubmit} style={{ marginBottom: 0 }}>
+        <div style={{ borderRadius: 8, boxShadow: fileGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 1s' }}>
+          <InputGroup className="mb-3" style={{ alignItems: 'stretch' }}>
+            <Form.Control 
+              type="file" 
+              accept="video/*" 
+              ref={fileInputRef}
+              onChange={handleFileChange} 
+              style={{ background: '#23272b', color: '#f1f1f1', borderRight: 0, borderTopRightRadius: 0, borderBottomRightRadius: 0, boxShadow: 'none' }}
+              onFocus={() => setFileGroupFocused(true)}
+              onBlur={() => setFileGroupFocused(false)}
+            />
+            <Button 
+              variant="primary" 
+              type="submit" 
+              disabled={loading} 
+              style={{ minWidth: 120, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, boxShadow: 'none' }}
+              onFocus={() => setFileGroupFocused(true)}
+              onBlur={() => setFileGroupFocused(false)}
+              onClick={e => e.target.blur()}
+            >
               {loading ? <Spinner animation="border" size="sm" /> : 'Transcribe'}
             </Button>
-          </Form>
-          {videoUrl && (
-            <div className="mt-4">
-              <video
-                ref={videoRef}
-                src={videoUrl}
-                controls
-                style={{ width: '100%', borderRadius: 12, background: '#23272b' }}
-                onTimeUpdate={handleTimeUpdate}
-              />
-            </div>
-          )}
-          {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
+          </InputGroup>
+        </div>
+      </Form>
+      {videoUrl && (
+        <div className="mt-4" style={{ width: '100%' }}>
+          <video
+            src={videoUrl}
+            controls
+            style={{ width: '100%', minHeight: 400, borderRadius: 12, background: '#23272b' }}
+            onTimeUpdate={handleTimeUpdate}
+          />
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', marginTop: 24 }}>
+        <div style={{ flex: 3, minWidth: 0 }}>
           {(segments.length > 0 || transcription) && (
-            <div className="transcript-box mt-3" style={{maxHeight: 350, overflowY: 'auto', overflowX: 'hidden', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '1.15rem'}}>
-              <h5>Transcription:</h5>
+            <div className="transcript-box" style={{maxHeight: 350, overflowY: 'auto', overflowX: 'hidden', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '1.15rem'}}>
+              <h5>Meeting Transcript:</h5>
               <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>
                 {segments.length > 0
                   ? segments.map((seg, idx) => (
                       <span
                         key={idx}
-                        style={{
-                          background:
-                            idx === activeSegment
-                              ? '#007bff55'
-                              : idx === hoveredSegment
-                              ? '#00bfff55'
-                              : searchResults.some(r => r.idx === idx)
-                              ? '#ffe06699'
-                              : 'transparent',
-                          borderRadius: 4,
-                          transition: 'background 0.2s',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={() => setHoveredSegment(idx)}
-                        onMouseLeave={() => setHoveredSegment(null)}
+                        style={{ background: idx === activeSegment ? '#007bff55' : searchResults.some(r => r.idx === idx) ? '#ffe06699' : 'transparent', borderRadius: 4, transition: 'background 0.2s', cursor: 'pointer' }}
                         onClick={() => {
-                          if (videoRef.current) {
-                            videoRef.current.currentTime = seg.start;
-                            videoRef.current.play();
+                          const video = document.querySelector('video');
+                          if (video) {
+                            video.currentTime = seg.start;
+                            video.play();
                           }
                         }}
                       >
@@ -194,33 +201,10 @@ function App() {
               </div>
             </div>
           )}
-          {transcription && (
-            <Form onSubmit={handleAsk} className="mt-4">
-              <Form.Group controlId="formQuestion" className="mb-3">
-                <Form.Label>Ask a question about the transcript</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={question}
-                  onChange={e => setQuestion(e.target.value)}
-                  placeholder="Type your question here..."
-                  disabled={qaLoading}
-                />
-              </Form.Group>
-              <Button variant="info" type="submit" disabled={qaLoading}>
-                {qaLoading ? <Spinner animation="border" size="sm" /> : 'Ask'}
-              </Button>
-            </Form>
-          )}
-          {answer && (
-            <div className="answer-box mt-3" style={{maxHeight: 350, overflowY: 'auto', overflowX: 'hidden', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '1.15rem'}}>
-              <h5>Answer:</h5>
-              <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>{answer}</div>
-            </div>
-          )}
         </div>
-        <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
           <Form.Group controlId="searchKeyword" className="mb-3">
-            <Form.Label>Search by keyword</Form.Label>
+            <Form.Label>Search meeting transcript</Form.Label>
             <Form.Control
               type="text"
               value={searchTerm}
@@ -229,16 +213,18 @@ function App() {
             />
           </Form.Group>
           {searchResults.length > 0 && (
-            <div style={{ maxHeight: 350, overflowY: 'auto', background: '#23272b', borderRadius: 8, padding: 12, color: '#f1f1f1', fontSize: '1.05rem' }}>
+            <div style={{ maxHeight: 200, overflowY: 'auto', background: '#23272b', borderRadius: 8, padding: 12, color: '#f1f1f1', fontSize: '1.05rem' }}>
               <b>Results:</b>
               <ul style={{ paddingLeft: 18 }}>
                 {searchResults.map((res, i) => (
                   <li key={i} style={{ cursor: res.idx !== null ? 'pointer' : 'default' }}
                     onClick={() => {
-                      if (res.idx !== null && videoRef.current) {
-                        videoRef.current.currentTime = segments[res.idx].start;
-                        videoRef.current.play();
-                        setActiveSegment(res.idx);
+                      if (res.idx !== null && segments[res.idx] && videoUrl) {
+                        const video = document.querySelector('video');
+                        if (video) {
+                          video.currentTime = segments[res.idx].start;
+                          video.play();
+                        }
                       }
                     }}
                   >
@@ -250,6 +236,43 @@ function App() {
           )}
         </div>
       </div>
+      {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
+      {transcription && (
+        <Form onSubmit={handleAsk} className="mt-4" style={{ marginBottom: 0 }}>
+          <div style={{ borderRadius: 6, boxShadow: qaGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 0.15s' }}>
+            <InputGroup>
+              <Form.Control
+                type="text"
+                value={question}
+                ref={questionInputRef}
+                onChange={e => setQuestion(e.target.value)}
+                placeholder="Ask a question about the meeting..."
+                disabled={qaLoading}
+                style={{ background: '#23272b', color: '#f1f1f1', boxShadow: 'none' }}
+                onFocus={() => setQaGroupFocused(true)}
+                onBlur={() => setQaGroupFocused(false)}
+              />
+              <Button 
+                variant="primary" 
+                type="submit" 
+                disabled={qaLoading} 
+                style={{ minWidth: 80, boxShadow: 'none' }}
+                onFocus={() => setQaGroupFocused(true)}
+                onBlur={() => setQaGroupFocused(false)}
+                onClick={e => e.target.blur()}
+              >
+                {qaLoading ? <Spinner animation="border" size="sm" /> : 'Ask'}
+              </Button>
+            </InputGroup>
+          </div>
+        </Form>
+      )}
+      {answer && (
+        <div className="answer-box mt-3" style={{maxHeight: 350, overflowY: 'auto', overflowX: 'hidden', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '1.15rem'}}>
+          <h5>Answer:</h5>
+          <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>{answer}</div>
+        </div>
+      )}
     </Container>
   );
 }
