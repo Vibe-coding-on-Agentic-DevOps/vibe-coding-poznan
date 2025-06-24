@@ -1,6 +1,6 @@
-# 🎬 Video Transcriber
+# 🤖 Meeting Assistant
 
-A modern, user-friendly web app for instantly transcribing your videos—whether they're meetings, lectures, interviews, or random clips—using Azure OpenAI Whisper and GPT. Effortlessly search, jump to moments, and ask questions about your video content to save time and boost productivity! 🚀
+A modern, user-friendly web app for instantly transcribing your meetings, lectures, interviews, or any video/audio content—using Azure OpenAI Whisper and GPT. Effortlessly search, jump to moments, and ask questions about your content to save time and boost productivity! 🚀
 
 ---
 
@@ -18,10 +18,10 @@ A modern, user-friendly web app for instantly transcribing your videos—whether
 ---
 
 ## 📝 Overview
-Video Transcriber lets you upload any video—meetings, lectures, interviews, or just random clips—and get a fast, accurate transcription. Instantly search through the transcript, jump to specific moments, find keywords, and even ask AI-powered questions about your video. Save hours of manual review and get straight to what matters! ✨
+Meeting Assistant lets you upload any meeting, lecture, interview, or other video/audio file and get a fast, accurate transcription. Instantly search through the transcript, jump to specific moments, find keywords, and even ask AI-powered questions about your content. Save hours of manual review and get straight to what matters! ✨
 
 ## ✨ Features
-- Upload and transcribe videos in various formats (mp4, mkv, avi, etc.)
+- Upload and transcribe meetings, lectures, interviews, and more in various formats (mp4, mkv, avi, wav, mp3, etc.)
 - **Duplicate detection:** Uploading or transcribing a duplicate file fetches the existing transcript from the database—no wasted compute!
 - **Database tab:** View, transcribe, and delete files. No manual add—files are added via the Transcribe tab only.
 - **Database Search tab:** Search and ask questions across all transcriptions using GPT.
@@ -34,12 +34,18 @@ Video Transcriber lets you upload any video—meetings, lectures, interviews, or
 - Ask prompts about the video using GPT 🤖
 - Download or copy transcribed text
 - Responsive UI with React Bootstrap
+- **Q&A:** Ask questions about a single meeting or across your entire database and get instant, AI-powered answers.
+- **Global Search:** Find keywords, topics, or speakers across all your meetings.
+- **Seamless UX:** Switch between tabs, preview videos, and manage files with ease.
+- **Robust file management:** Prevent duplicates, auto-transcribe on upload, and keep your workspace organized.
 
 ## 🛠️ Tech Stack
 - **Frontend:** React, React Bootstrap
 - **Backend:** Python Flask
 - **Transcription:** Azure OpenAI Whisper
 - **Other:** ffmpeg (for audio extraction)
+- **Database:** SQLite (via Flask-SQLAlchemy)
+- **AI Q&A:** Azure OpenAI GPT
 
 ## 🏗️ Architecture
 ```
@@ -96,16 +102,18 @@ Start both backend and frontend with one command:
 
 ## 🚀 Usage
 1. Open the frontend in your browser (usually at http://localhost:3000).
-2. Upload a video file via the Transcribe tab. (All files are managed in the Database tab after upload.)
-3. Instantly search, jump to moments, highlight keywords, and ask questions about your video or the entire database!
+2. Upload a meeting or video file via the Transcribe tab. (All files are managed in the Database tab after upload.)
+3. Instantly search, jump to moments, highlight keywords, and ask questions about your meeting or the entire database!
 4. Delete files from the Database tab to remove both the database entry and the file from disk.
+5. Use the Database Search tab to find topics, speakers, or answers across all your meetings.
 
 ## ☁️ Deployment
 - Designed for easy deployment to Azure (App Service, Container Apps, etc.).
 - Update environment variables as needed for production.
+- For Docker or cloud deployment, see the provided Dockerfile and deployment notes (if available).
 
 ## 🤝 Contributing
-Contributions are welcome! Please open issues or submit pull requests for improvements.
+Contributions are welcome! Please open issues or submit pull requests for improvements, bug fixes, or new features. For major changes, please open an issue first to discuss what you would like to change.
 
 ## 🪪 License
 This project is licensed under the MIT License.
