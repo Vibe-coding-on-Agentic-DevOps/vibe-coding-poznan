@@ -22,6 +22,7 @@ Video Transcriber lets you upload any video—meetings, lectures, interviews, or
 
 ## ✨ Features
 - Upload and transcribe videos in various formats (mp4, mkv, avi, etc.)
+- **Unsupported file types are automatically converted to a supported format before transcription, so you can upload almost any video!**
 - Automatic audio extraction and conversion
 - Accurate transcription using Azure OpenAI Whisper
 - Search through the transcript and jump to video moments 🔍
