@@ -20,6 +20,7 @@ function App() {
   const [fileGroupFocused, setFileGroupFocused] = useState(false);
   const [qaGroupFocused, setQaGroupFocused] = useState(false);
   const [page, setPage] = useState('transcribe');
+  const [fileInputKey, setFileInputKey] = useState(0);
   const fileInputRef = useRef(null);
   const questionInputRef = useRef(null);
 
@@ -141,6 +142,16 @@ function App() {
     }
   };
 
+  function handleTranscribeFileFromGallery(file) {
+    setFile(file);
+    setVideoUrl(URL.createObjectURL(file));
+    setPage('transcribe');
+    setFileInputKey(prev => prev + 1); // force file input to reset
+    setTimeout(() => {
+      handleSubmit({ preventDefault: () => {} });
+    }, 0);
+  }
+
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
       <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4" style={{
@@ -191,7 +202,7 @@ function App() {
         </Nav.Item>
       </Nav>
       {page === 'database-search' && <DatabaseSearch />}
-      {page === 'database' && <DatabaseGallery />}
+      {page === 'database' && <DatabaseGallery onTranscribeFile={handleTranscribeFileFromGallery} />}
       {page === 'transcribe' && (
         <>
           <h2
@@ -223,6 +234,7 @@ function App() {
             <div style={{ borderRadius: 8, boxShadow: fileGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 1s' }}>
               <InputGroup className="mb-3" style={{ alignItems: 'stretch' }}>
                 <Form.Control 
+                  key={fileInputKey}
                   type="file" 
                   accept="video/*" 
                   ref={fileInputRef}

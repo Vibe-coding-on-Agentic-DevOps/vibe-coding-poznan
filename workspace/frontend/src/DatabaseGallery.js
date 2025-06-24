@@ -8,7 +8,7 @@ function getFileIcon(filename) {
   return "📄";
 }
 
-export default function DatabaseGallery() {
+export default function DatabaseGallery({ onTranscribeFile }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -67,16 +67,32 @@ export default function DatabaseGallery() {
     setAddLoading(false);
   }
 
+  async function handleFileClick(fileObj) {
+    // Download the file from the backend
+    try {
+      const res = await fetch(`/files/${fileObj.id}/download`);
+      if (!res.ok) throw new Error('Failed to fetch file');
+      const blob = await res.blob();
+      // Create a File object for the parent
+      const file = new File([blob], fileObj.filename, { type: blob.type });
+      if (onTranscribeFile) onTranscribeFile(file);
+    } catch {
+      alert('Failed to fetch file for transcription.');
+    }
+  }
+
   return (
     <div style={{ minHeight: 300 }}>
       <h3 style={{ color: '#e3e5e8', marginBottom: 24 }}>Transcribed Files Gallery</h3>
       {loading ? <Spinner animation="border" /> : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
           {files.map(f => (
-            <div key={f.id} style={{ background: '#23272b', borderRadius: 10, padding: 16, minWidth: 120, textAlign: 'center', position: 'relative', boxShadow: '0 2px 8px #0002' }}>
+            <div key={f.id} style={{ background: '#23272b', borderRadius: 10, padding: 16, minWidth: 120, textAlign: 'center', position: 'relative', boxShadow: '0 2px 8px #0002', cursor: 'pointer' }}
+              onClick={() => handleFileClick(f)}
+            >
               <span style={{ fontSize: 36 }}>{getFileIcon(f.filename)}</span>
               <div style={{ color: '#e3e5e8', marginTop: 8, wordBreak: 'break-all', fontSize: 14 }}>{f.filename}</div>
-              <Button variant="danger" size="sm" style={{ position: 'absolute', top: 6, right: 6, borderRadius: '50%', padding: '2px 7px', fontWeight: 700 }} onClick={() => handleDelete(f.id)} title="Delete file">-</Button>
+              <Button variant="danger" size="sm" style={{ position: 'absolute', top: 6, right: 6, borderRadius: '50%', padding: '2px 7px', fontWeight: 700 }} onClick={e => { e.stopPropagation(); handleDelete(f.id); }} title="Delete file">-</Button>
             </div>
           ))}
           <div style={{ background: '#23272b', borderRadius: 10, padding: 16, minWidth: 120, textAlign: 'center', position: 'relative', boxShadow: '0 2px 8px #0002', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowAdd(true)}>

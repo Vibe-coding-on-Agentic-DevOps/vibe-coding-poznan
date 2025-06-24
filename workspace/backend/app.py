@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -24,6 +24,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///transcriptions.db'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 db.init_app(app)
 CORS(app)
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 with app.app_context():
     db.create_all()
@@ -59,6 +62,10 @@ def add_file():
                 filename = new_filename
                 break
             i += 1
+    # Save file to uploads directory
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    with open(file_path, 'wb') as f_out:
+        f_out.write(file_content)
     # Save as a new record (no transcription)
     new_transcription = Transcription(
         filename=filename,
@@ -130,22 +137,22 @@ def transcribe():
                 filename = new_filename
                 break
             i += 1
-    # Save file temporarily
-    filepath = os.path.join('/tmp', filename)
-    with open(filepath, 'wb') as f:
-        f.write(file_content)
-    audio_path = filepath
+    # Save file to uploads directory
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    with open(file_path, 'wb') as f_out:
+        f_out.write(file_content)
+    audio_path = file_path  # Use uploads path for processing
     temp_audio_created = False
     if ext not in audio_extensions:
-        audio_path = filepath + '.mp3'
+        audio_path = file_path + '.mp3'
         temp_audio_created = True
         import subprocess
         ffmpeg_cmd = [
-            'ffmpeg', '-y', '-i', filepath, '-vn', '-acodec', 'mp3', audio_path
+            'ffmpeg', '-y', '-i', file_path, '-vn', '-acodec', 'mp3', audio_path
         ]
         result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
-            os.remove(filepath)
+            os.remove(file_path)
             return jsonify({'error': 'Failed to extract audio from video.'}), 500
     try:
         with open(audio_path, 'rb') as audio_file:
@@ -214,7 +221,8 @@ def transcribe():
             else:
                 return jsonify({'error': response.text}), response.status_code
     finally:
-        os.remove(filepath)
+        # Do NOT delete the uploaded file from uploads
+        # Only remove temp audio if created
         if temp_audio_created and os.path.exists(audio_path):
             os.remove(audio_path)
     return jsonify({'transcription': transcription, 'segments': word_segments})
@@ -287,6 +295,16 @@ def ask_database():
         return jsonify({'answer': answer})
     else:
         return jsonify({'error': response.text}), response.status_code
+
+@app.route('/files/<int:file_id>/download', methods=['GET'])
+def download_file(file_id):
+    t = db.session.get(Transcription, file_id)
+    if not t:
+        return jsonify({'error': 'File not found'}), 404
+    file_path = os.path.join(UPLOAD_FOLDER, t.filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not available on server'}), 404
+    return send_file(file_path, as_attachment=True, download_name=t.filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
