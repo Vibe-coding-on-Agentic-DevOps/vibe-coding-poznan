@@ -19,7 +19,7 @@ h5, label, .form-label {
 .container {
   background: rgba(30, 32, 34, 0.95);
   border-radius: 18px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  box-shadow: 0 0px 256px 0 rgba(93, 31, 135, 0.37);
   padding: 2.5rem 2rem 2rem 2rem;
   max-width: 600px;
 }

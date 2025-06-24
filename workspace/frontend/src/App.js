@@ -31,6 +31,8 @@ function App() {
     setSegments([]);
     setActiveSegment(null);
     setFileGroupFocused(false); // Remove blue backlight after file upload
+    setSearchTerm(''); // Clear search input
+    setSearchResults([]); // Clear search results
   };
 
   const handleTimeUpdate = (e) => {
@@ -138,7 +140,31 @@ function App() {
 
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
-      <h2>Meeting Assistant</h2>
+      <h2
+        style={{
+          textAlign: 'center',
+          fontWeight: 700,
+          fontSize: '2.4rem',
+          letterSpacing: '2px',
+          background: 'none', // remove gradient
+          color: '#e3e5e8', // match gray box color
+          WebkitBackgroundClip: undefined,
+          WebkitTextFillColor: undefined,
+          backgroundClip: undefined,
+          textFillColor: undefined,
+          fontFamily: 'inherit',
+          textShadow: '0 0 16px rgba(0, 17, 255, 0.12), 0 4px 24px #222b, 0 1px 0 #fff2',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px #0002',
+          padding: '0.5rem 0',
+          marginBottom: '2.2rem',
+          textTransform: 'uppercase',
+        }}
+      >
+        <span role="img" aria-label="camera" style={{fontSize: '2.1rem', verticalAlign: '0.3rem', marginRight: 10}}>🎥</span>
+        MEETING ASSISTANT
+        <span role="img" aria-label="assistant" style={{fontSize: '2.1rem', verticalAlign: '0.2rem', marginLeft: 10}}>🤖</span>
+      </h2>
       <Form onSubmit={handleSubmit} style={{ marginBottom: 0 }}>
         <div style={{ borderRadius: 8, boxShadow: fileGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 1s' }}>
           <InputGroup className="mb-3" style={{ alignItems: 'stretch' }}>
@@ -178,38 +204,107 @@ function App() {
       <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start', marginTop: 24 }}>
         <div style={{ flex: 3, minWidth: 0 }}>
           {(segments.length > 0 || transcription) && (
-            <div className="transcript-box" style={{maxHeight: 350, overflowY: 'auto', overflowX: 'hidden', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '1.15rem'}}>
-              <h5>Meeting Transcript:</h5>
-              <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>
-                {segments.length > 0
-                  ? segments.map((seg, idx) => (
-                      <span
-                        key={idx}
-                        style={{ background: idx === activeSegment ? '#007bff55' : searchResults.some(r => r.idx === idx) ? '#ffe06699' : 'transparent', borderRadius: 4, transition: 'background 0.2s', cursor: 'pointer' }}
-                        onClick={() => {
-                          const video = document.querySelector('video');
-                          if (video) {
-                            video.currentTime = seg.start;
-                            video.play();
-                          }
-                        }}
-                      >
-                        {seg.text + ' '}
-                      </span>
-                    ))
-                  : transcription}
+            <>
+              <div style={{ display: 'flex', alignItems: 'flex-end', height: 36 }}>
+                <span style={{
+                  background: '#e3e5e8', // lighter gray for transcript label
+                  color: '#23272b',
+                  fontWeight: 600,
+                  fontSize: '1.05rem',
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  padding: '6px 18px 2px 18px',
+                  border: '1px solid #343a40',
+                  borderBottom: 'none',
+                  marginLeft: -1, // nudge left
+                  marginBottom: 0, // flush top
+                  boxShadow: '0 -2px 8px #0002',
+                  letterSpacing: '0.5px',
+                  zIndex: 2,
+                  position: 'relative',
+                }}>Meeting Transcript:</span>
               </div>
-            </div>
+              <div className="transcript-box" style={{
+                maxHeight: 350,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                whiteSpace: 'pre-wrap',
+                fontFamily: 'inherit',
+                fontSize: '1.15rem',
+                marginTop: 0,
+                border: '1px solid #343a40',
+                borderTopLeftRadius: 0, // remove top left radius
+                borderTopRightRadius: 0, // remove top right radius
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
+                background: '#23272b',
+                position: 'relative',
+                zIndex: 1,
+              }}>
+                <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>
+                  {segments.length > 0
+                    ? segments.map((seg, idx) => (
+                        <span
+                          key={idx}
+                          style={{ background: idx === activeSegment ? '#007bff55' : searchResults.some(r => r.idx === idx) ? '#ffe06699' : 'transparent', borderRadius: 4, transition: 'background 0.2s', cursor: 'pointer' }}
+                          onClick={() => {
+                            const video = document.querySelector('video');
+                            if (video) {
+                              video.currentTime = seg.start;
+                              video.play();
+                            }
+                          }}
+                        >
+                          {seg.text + ' '}
+                        </span>
+                      ))
+                    : transcription}
+                </div>
+              </div>
+            </>
           )}
         </div>
         <div style={{ flex: 1, minWidth: 260 }}>
           <Form.Group controlId="searchKeyword" className="mb-3">
-            <Form.Label>Search meeting transcript</Form.Label>
+            <div style={{ display: 'flex', alignItems: 'flex-end', height: 36 }}>
+              <span style={{
+                display: 'block',
+                width: '100%',
+                background: '#d3d5d8', // slightly different light gray for search label
+                color: '#23272b',
+                fontWeight: 600,
+                fontSize: '1.05rem',
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                padding: '6px 12px 2px 12px', // match input padding
+                border: '1px solid #343a40',
+                borderBottom: 'none',
+                marginLeft: 0, // align perfectly with output field
+                marginBottom: 0, // flush top
+                boxShadow: '0 -2px 8px #0002',
+                letterSpacing: '0.5px',
+                zIndex: 2,
+                position: 'relative',
+                boxSizing: 'border-box',
+              }}>Search meeting transcript</span>
+            </div>
             <Form.Control
               type="text"
               value={searchTerm}
               onChange={handleSearch}
               placeholder="Type keyword..."
+              style={{
+                border: '1px solid #343a40',
+                borderTopLeftRadius: 0, // remove top left radius
+                borderTopRightRadius: 0, // remove top right radius
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 10,
+                background: '#23272b',
+                color: '#f1f1f1',
+                marginTop: 0,
+                zIndex: 1,
+                position: 'relative',
+              }}
             />
           </Form.Group>
           {searchResults.length > 0 && (
@@ -268,10 +363,47 @@ function App() {
         </Form>
       )}
       {answer && (
-        <div className="answer-box mt-3" style={{maxHeight: 350, overflowY: 'auto', overflowX: 'hidden', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '1.15rem'}}>
-          <h5>Answer:</h5>
-          <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>{answer}</div>
-        </div>
+        <>
+          <div style={{ display: 'flex', alignItems: 'flex-end', height: 36, marginTop: 24 }}>
+            <span style={{
+              background: '#e3e5e8', // same as transcript label
+              color: '#23272b',
+              fontWeight: 600,
+              fontSize: '1.05rem',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              padding: '6px 18px 2px 18px',
+              border: '1px solid #343a40',
+              borderBottom: 'none',
+              marginLeft: -1, // nudge left for alignment
+              marginBottom: 0,
+              boxShadow: '0 -2px 8px #0002',
+              letterSpacing: '0.5px',
+              zIndex: 2,
+              position: 'relative',
+            }}>Answer:</span>
+          </div>
+          <div className="answer-box mt-0" style={{
+            maxHeight: 180, // reduced height
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            whiteSpace: 'pre-wrap',
+            fontFamily: 'inherit',
+            fontSize: '1.15rem',
+            border: '1px solid #343a40',
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottomLeftRadius: 10,
+            borderBottomRightRadius: 10,
+            background: '#23272b',
+            position: 'relative',
+            zIndex: 1,
+            marginTop: 0, // remove extra margin
+            padding: 10, // less padding
+          }}>
+            <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>{answer}</div>
+          </div>
+        </>
       )}
     </Container>
   );
