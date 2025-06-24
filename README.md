@@ -22,9 +22,13 @@ Video Transcriber lets you upload any video—meetings, lectures, interviews, or
 
 ## ✨ Features
 - Upload and transcribe videos in various formats (mp4, mkv, avi, etc.)
-- **Unsupported file types are automatically converted to a supported format before transcription, so you can upload almost any video!**
-- Automatic audio extraction and conversion
-- Accurate transcription using Azure OpenAI Whisper
+- **Duplicate detection:** Uploading or transcribing a duplicate file fetches the existing transcript from the database—no wasted compute!
+- **Database tab:** View, transcribe, and delete files. No manual add—files are added via the Transcribe tab only.
+- **Database Search tab:** Search and ask questions across all transcriptions using GPT.
+- All transcriptions are stored in a persistent database (SQLite via Flask-SQLAlchemy).
+- Uploaded files are stored in a persistent `uploads` folder. Deleting a file from the database tab also deletes the file from disk.
+- Automatic audio extraction and conversion for unsupported file types.
+- Accurate transcription using Azure OpenAI Whisper.
 - Search through the transcript and jump to video moments 🔍
 - Keyword highlighting and instant navigation
 - Ask prompts about the video using GPT 🤖
@@ -43,6 +47,7 @@ Video Transcriber lets you upload any video—meetings, lectures, interviews, or
 ```
 - The frontend handles file uploads, search, and AI queries.
 - The backend processes files, interacts with Azure, and returns transcriptions and GPT responses.
+- All files and transcriptions are managed in a persistent database and uploads folder.
 
 ## ⚡ Setup & Installation
 ### Prerequisites
@@ -91,8 +96,9 @@ Start both backend and frontend with one command:
 
 ## 🚀 Usage
 1. Open the frontend in your browser (usually at http://localhost:3000).
-2. Upload a video file.
-3. Instantly search, jump to moments, highlight keywords, and ask questions about your video!
+2. Upload a video file via the Transcribe tab. (All files are managed in the Database tab after upload.)
+3. Instantly search, jump to moments, highlight keywords, and ask questions about your video or the entire database!
+4. Delete files from the Database tab to remove both the database entry and the file from disk.
 
 ## ☁️ Deployment
 - Designed for easy deployment to Azure (App Service, Container Apps, etc.).
