@@ -143,12 +143,38 @@ function App() {
   if (page === 'database') {
     return (
       <Container className="mt-5" style={{ maxWidth: 1200 }}>
-        <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4">
+        <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4" style={{
+          background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)',
+          borderRadius: 10,
+          border: '1px solid #343a40',
+          padding: '2px 8px',
+          boxShadow: '0 2px 8px #0002',
+        }}>
           <Nav.Item>
-            <Nav.Link eventKey="transcribe">Transcribe</Nav.Link>
+            <Nav.Link eventKey="transcribe" style={{
+              color: '#f1f1f1',
+              fontWeight: 600,
+              fontSize: '1.05rem',
+              borderRadius: 8,
+              margin: '2px 4px',
+              background: page === 'transcribe' ? 'rgba(0,123,255,0.18)' : 'transparent',
+              border: page === 'transcribe' ? '1.5px solid #007bff' : 'none',
+              boxShadow: page === 'transcribe' ? '0 2px 8px #007bff33' : 'none',
+              transition: 'background 0.2s, border 0.2s',
+            }}>Transcribe</Nav.Link>
           </Nav.Item>
           <Nav.Item>
-            <Nav.Link eventKey="database">Database</Nav.Link>
+            <Nav.Link eventKey="database" style={{
+              color: '#f1f1f1',
+              fontWeight: 600,
+              fontSize: '1.05rem',
+              borderRadius: 8,
+              margin: '2px 4px',
+              background: page === 'database' ? 'rgba(0,123,255,0.18)' : 'transparent',
+              border: page === 'database' ? '1.5px solid #007bff' : 'none',
+              boxShadow: page === 'database' ? '0 2px 8px #007bff33' : 'none',
+              transition: 'background 0.2s, border 0.2s',
+            }}>Database</Nav.Link>
           </Nav.Item>
         </Nav>
         <DatabaseSearch />
@@ -158,14 +184,6 @@ function App() {
 
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
-      <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4">
-        <Nav.Item>
-          <Nav.Link eventKey="transcribe">Transcribe</Nav.Link>
-        </Nav.Item>
-        <Nav.Item>
-          <Nav.Link eventKey="database">Database</Nav.Link>
-        </Nav.Item>
-      </Nav>
       <h2
         style={{
           textAlign: 'center',
@@ -191,6 +209,40 @@ function App() {
         MEETING ASSISTANT
         <span role="img" aria-label="assistant" style={{fontSize: '2.1rem', verticalAlign: '0.2rem', marginLeft: 10}}>🤖</span>
       </h2>
+      <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4" style={{
+        background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)',
+        borderRadius: 10,
+        border: '1px solid #343a40',
+        padding: '2px 8px',
+        boxShadow: '0 2px 8px #0002',
+      }}>
+        <Nav.Item>
+          <Nav.Link eventKey="transcribe" style={{
+            color: '#f1f1f1',
+            fontWeight: 600,
+            fontSize: '1.05rem',
+            borderRadius: 8,
+            margin: '2px 4px',
+            background: page === 'transcribe' ? 'rgba(0,123,255,0.18)' : 'transparent',
+            border: page === 'transcribe' ? '1.5px solid #007bff' : 'none',
+            boxShadow: page === 'transcribe' ? '0 2px 8px #007bff33' : 'none',
+            transition: 'background 0.2s, border 0.2s',
+          }}>Transcribe</Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link eventKey="database" style={{
+            color: '#f1f1f1',
+            fontWeight: 600,
+            fontSize: '1.05rem',
+            borderRadius: 8,
+            margin: '2px 4px',
+            background: page === 'database' ? 'rgba(0,123,255,0.18)' : 'transparent',
+            border: page === 'database' ? '1.5px solid #007bff' : 'none',
+            boxShadow: page === 'database' ? '0 2px 8px #007bff33' : 'none',
+            transition: 'background 0.2s, border 0.2s',
+          }}>Database</Nav.Link>
+        </Nav.Item>
+      </Nav>
       <Form onSubmit={handleSubmit} style={{ marginBottom: 0 }}>
         <div style={{ borderRadius: 8, boxShadow: fileGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 1s' }}>
           <InputGroup className="mb-3" style={{ alignItems: 'stretch' }}>
@@ -233,8 +285,8 @@ function App() {
             <>
               <div style={{ display: 'flex', alignItems: 'flex-end', height: 36 }}>
                 <span style={{
-                  background: '#e3e5e8', // lighter gray for transcript label
-                  color: '#23272b',
+                  background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)', // match choose file gradient
+                  color: '#f1f1f1', // match file input button text
                   fontWeight: 600,
                   fontSize: '1.05rem',
                   borderTopLeftRadius: 10,
@@ -242,7 +294,7 @@ function App() {
                   padding: '6px 18px 2px 18px',
                   border: '1px solid #343a40',
                   borderBottom: 'none',
-                  marginLeft: -1, // nudge left
+                  marginLeft: 0, // nudge left
                   marginBottom: 0, // flush top
                   boxShadow: '0 -2px 8px #0002',
                   letterSpacing: '0.5px',
@@ -296,8 +348,8 @@ function App() {
               <span style={{
                 display: 'block',
                 width: '100%',
-                background: '#d3d5d8', // slightly different light gray for search label
-                color: '#23272b',
+                background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)', // match choose file gradient
+                color: '#f1f1f1', // match file input button text
                 fontWeight: 600,
                 fontSize: '1.05rem',
                 borderTopLeftRadius: 10,
@@ -392,8 +444,8 @@ function App() {
         <>
           <div style={{ display: 'flex', alignItems: 'flex-end', height: 36, marginTop: 24 }}>
             <span style={{
-              background: '#e3e5e8', // same as transcript label
-              color: '#23272b',
+              background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)', // match choose file gradient
+              color: '#f1f1f1', // match file input button text
               fontWeight: 600,
               fontSize: '1.05rem',
               borderTopLeftRadius: 10,
@@ -401,7 +453,7 @@ function App() {
               padding: '6px 18px 2px 18px',
               border: '1px solid #343a40',
               borderBottom: 'none',
-              marginLeft: -1, // nudge left for alignment
+              marginLeft: 0, // nudge left for alignment
               marginBottom: 0,
               boxShadow: '0 -2px 8px #0002',
               letterSpacing: '0.5px',

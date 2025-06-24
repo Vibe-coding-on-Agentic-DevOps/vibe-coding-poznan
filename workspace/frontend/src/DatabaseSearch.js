@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Container, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 
 function DatabaseSearch() {
@@ -9,6 +9,10 @@ function DatabaseSearch() {
   const [dbQuestion, setDbQuestion] = useState('');
   const [dbAnswer, setDbAnswer] = useState('');
   const [dbQaLoading, setDbQaLoading] = useState(false);
+  const [searchGroupFocused, setSearchGroupFocused] = useState(false);
+  const [qaGroupFocused, setQaGroupFocused] = useState(false);
+  const searchBlurTimeout = useRef(null);
+  const qaBlurTimeout = useRef(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -52,18 +56,52 @@ function DatabaseSearch() {
     setDbQaLoading(false);
   };
 
+  // Focus/blur handlers for search input group
+  const handleSearchFocus = () => {
+    if (searchBlurTimeout.current) clearTimeout(searchBlurTimeout.current);
+    setSearchGroupFocused(true);
+  };
+  const handleSearchBlur = () => {
+    searchBlurTimeout.current = setTimeout(() => setSearchGroupFocused(false), 100);
+  };
+
+  // Focus/blur handlers for Q&A input group
+  const handleQaFocus = () => {
+    if (qaBlurTimeout.current) clearTimeout(qaBlurTimeout.current);
+    setQaGroupFocused(true);
+  };
+  const handleQaBlur = () => {
+    qaBlurTimeout.current = setTimeout(() => setQaGroupFocused(false), 100);
+  };
+
   return (
     <Container className="mt-5" style={{ maxWidth: 900 }}>
       <h4 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Transcription keyword Search</h4>
       <Form onSubmit={handleSearch} className="mb-4">
-        <InputGroup>
+        <InputGroup
+          style={searchGroupFocused ? {
+            boxShadow: '0 0 0 0.2rem #1976d2',
+            borderRadius: 8,
+            transition: 'box-shadow 0.15s',
+          } : { borderRadius: 8, transition: 'box-shadow 0.15s' }}
+        >
           <Form.Control
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search all transcriptions..."
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+            style={searchGroupFocused ? { borderColor: '#1976d2', zIndex: 2 } : {}}
           />
-          <Button variant="primary" type="submit" disabled={loading} style={{ minWidth: 100 }}>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading}
+            style={searchGroupFocused ? { minWidth: 100, borderColor: '#1976d2', zIndex: 2 } : { minWidth: 100 }}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+          >
             {loading ? <Spinner animation="border" size="sm" /> : 'Search'}
           </Button>
         </InputGroup>
@@ -85,14 +123,30 @@ function DatabaseSearch() {
       <hr className="my-4" />
       <h4 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Ask a question about the database</h4>
       <Form onSubmit={handleDbAsk} className="mb-3">
-        <InputGroup>
+        <InputGroup
+          style={qaGroupFocused ? {
+            boxShadow: '0 0 0 0.2rem #1976d2',
+            borderRadius: 8,
+            transition: 'box-shadow 0.15s',
+          } : { borderRadius: 8, transition: 'box-shadow 0.15s' }}
+        >
           <Form.Control
             type="text"
             value={dbQuestion}
             onChange={e => setDbQuestion(e.target.value)}
             placeholder="e.g. Has there been a meeting on X? What is Y?"
+            onFocus={handleQaFocus}
+            onBlur={handleQaBlur}
+            style={qaGroupFocused ? { borderColor: '#1976d2', zIndex: 2 } : {}}
           />
-          <Button variant="success" type="submit" disabled={dbQaLoading} style={{ minWidth: 100 }}>
+          <Button
+            variant="success"
+            type="submit"
+            disabled={dbQaLoading}
+            style={qaGroupFocused ? { minWidth: 100, borderColor: '#1976d2', zIndex: 2 } : { minWidth: 100 }}
+            onFocus={handleQaFocus}
+            onBlur={handleQaBlur}
+          >
             {dbQaLoading ? <Spinner animation="border" size="sm" /> : 'Ask'}
           </Button>
         </InputGroup>
