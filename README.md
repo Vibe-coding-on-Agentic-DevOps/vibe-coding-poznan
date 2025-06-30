@@ -12,7 +12,7 @@ A modern, user-friendly web app for instantly transcribing your meetings, lectur
 - [Architecture](#architecture)
 - [Setup & Installation](#setup--installation)
 - [Usage](#usage)
-- [Deployment](#deployment)
+- [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
 
