@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from models import db, Transcription
 from werkzeug.utils import secure_filename
 import hashlib
+import json
 
 # Load .env at the very top
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -30,6 +31,19 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 with app.app_context():
     db.create_all()
+    
+    # Check if segments column exists, if not add it
+    from sqlalchemy import text
+    try:
+        result = db.session.execute(text("PRAGMA table_info(transcription);"))
+        columns = [row[1] for row in result.fetchall()]
+        if 'segments' not in columns:
+            db.session.execute(text("ALTER TABLE transcription ADD COLUMN segments TEXT;"))
+            db.session.commit()
+            print("Added segments column to transcription table")
+    except Exception as e:
+        print(f"Error checking/adding segments column: {e}")
+        db.session.rollback()
 
 @app.route('/files', methods=['GET'])
 def list_files():
@@ -71,7 +85,8 @@ def add_file():
         filename=filename,
         transcription="",
         file_hash=file_hash,
-        file_size=file_size
+        file_size=file_size,
+        segments=None  # No segments for files without transcription
     )
     db.session.add(new_transcription)
     db.session.commit()
@@ -110,25 +125,31 @@ def transcribe():
     # Check for duplicate by filename
     existing = Transcription.query.filter_by(filename=filename).first()
     if existing and existing.file_hash == file_hash and existing.file_size == file_size and existing.transcription:
-        # Return the existing transcription and segments as a list of chunks (simulate segments for UI)
-        words = existing.transcription.split()
-        chunk_size = 3
-        word_segments = []
-        for i in range(0, len(words), chunk_size):
-            chunk_words = words[i:i+chunk_size]
-            word_segments.append({
-                'text': ' '.join(chunk_words),
-                'start': i,  # fake start
-                'end': i + len(chunk_words)  # fake end
-            })
-        if not word_segments:
-            word_segments = [{
+        # Return the existing transcription and saved segments
+        segments_data = []
+        if existing.segments:
+            try:
+                segments_data = json.loads(existing.segments)
+            except (json.JSONDecodeError, TypeError):
+                # Fallback to fake segments if JSON parsing fails
+                words = existing.transcription.split()
+                chunk_size = 3
+                for i in range(0, len(words), chunk_size):
+                    chunk_words = words[i:i+chunk_size]
+                    segments_data.append({
+                        'text': ' '.join(chunk_words),
+                        'start': i,  # fake start
+                        'end': i + len(chunk_words)  # fake end
+                    })
+        
+        if not segments_data:
+            segments_data = [{
                 'text': existing.transcription,
                 'start': 0,
                 'end': 0
             }]
-        # Also include the filename in the response for frontend clarity
-        return jsonify({'transcription': existing.transcription, 'segments': word_segments, 'filename': existing.filename}), 200
+        
+        return jsonify({'transcription': existing.transcription, 'segments': segments_data, 'filename': existing.filename}), 200
     elif existing and existing.file_hash == file_hash and existing.file_size == file_size:
         # Return empty transcription (should not happen, but for safety)
         return jsonify({'transcription': existing.transcription, 'segments': []}), 200
@@ -219,7 +240,8 @@ def transcribe():
                     filename=filename,
                     transcription=transcription,
                     file_hash=file_hash,
-                    file_size=file_size
+                    file_size=file_size,
+                    segments=json.dumps(word_segments)  # Save segments as JSON string
                 )
                 db.session.add(new_transcription)
                 db.session.commit()
