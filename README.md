@@ -118,6 +118,22 @@ Start both backend and frontend with one command:
 4. Delete files from the Database tab to remove both the database entry and the file from disk.
 5. Use the Database Search tab to find topics, speakers, or answers across all your meetings.
 
+## 🧪 Testing
+
+### Backend (Python/Flask)
+- Tests are located in `workspace/backend/tests/`.
+- To run backend tests:
+  ```bash
+  cd workspace/backend
+  pytest
+  ```
+- Tests use a temporary database and do not affect your production data.
+- Tests cover API endpoints for file upload, deletion, transcription, search, and Q&A.
+
+### Continuous Integration (CI)
+- Backend tests are automatically run on every push and pull request to the `main` branch using GitHub Actions.
+- See `.github/workflows/python-tests.yml` for the workflow configuration.
+
 ## ☁️ Deployment
 - Designed for easy deployment to Azure (App Service, Container Apps, etc.).
 - Update environment variables as needed for production.
