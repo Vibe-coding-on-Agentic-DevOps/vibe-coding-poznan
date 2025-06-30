@@ -101,7 +101,8 @@ def transcribe():
     audio_extensions = {'.flac', '.m4a', '.mp3', '.mp4', '.mpeg', '.mpga', '.oga', '.ogg', '.wav', '.webm'}
     _, ext = os.path.splitext(file.filename.lower())
     if ext not in allowed_extensions:
-        return jsonify({'error': f'File type {ext} not supported. Allowed: {', '.join(allowed_extensions)}'}), 400
+        allowed = ', '.join(allowed_extensions)
+        return jsonify({'error': f'File type {ext} not supported. Allowed: {allowed}'}), 400
     filename = secure_filename(file.filename)
     file_content = file.read()
     file_hash = hashlib.sha256(file_content).hexdigest()
