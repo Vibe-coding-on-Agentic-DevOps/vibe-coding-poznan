@@ -134,11 +134,6 @@ Start both backend and frontend with one command:
 - Backend tests are automatically run on every push and pull request to the `main` branch using GitHub Actions.
 - See `.github/workflows/python-tests.yml` for the workflow configuration.
 
-## ☁️ Deployment
-- Designed for easy deployment to Azure (App Service, Container Apps, etc.).
-- Update environment variables as needed for production.
-- For Docker or cloud deployment, see the provided Dockerfile and deployment notes (if available).
-
 ## 🤝 Contributing
 Contributions are welcome! Please open issues or submit pull requests for improvements, bug fixes, or new features. For major changes, please open an issue first to discuss what you would like to change.
 
