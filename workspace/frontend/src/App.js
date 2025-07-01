@@ -375,7 +375,7 @@ function App() {
                       fontWeight: 600,
                       fontSize: '1.05rem',
                       borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
+                      borderTopRightRadius: 10, // Rounded upper right corner
                       padding: '6px 18px 2px 18px',
                       border: '1px solid #343a40',
                       borderBottom: 'none',
@@ -397,9 +397,9 @@ function App() {
                           marginLeft: 0,
                           minWidth: 32,
                           width: 30,
-                          height: 36,
+                          height: 40, // Match height to Meeting Transcript
                           fontWeight: 600,
-                          borderTopRightRadius: 8,
+                          borderTopRightRadius: 10, // Rounded upper right corner
                           borderBottomLeftRadius: 0,
                           borderBottomRightRadius: 0,
                           boxShadow: '0 2px 8px #0002',
@@ -410,15 +410,15 @@ function App() {
                           border: '1px solid #343a40',
                           borderBottom: 'none',
                           display: 'flex',
-                          alignItems: 'flex-end', // align icon to bottom
+                          alignItems: 'center', // align icon to center
                           justifyContent: 'center',
                           position: 'relative',
-                          top: 5, // nudge down for alignment with text field
+                          top: 0, // align with text field
                         }}
                         onClick={handleDownloadTxt}
                         title="Download as TXT"
                       >
-                        <svg width="18" height="35" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="18" height="60" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M10 3V14M10 14L5 9M10 14L15 9" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                           <rect x="4" y="16" width="12" height="2" rx="1" fill="#fff"/>
                         </svg>
@@ -435,7 +435,7 @@ function App() {
                     marginTop: 0,
                     border: '1px solid #343a40',
                     borderTopLeftRadius: 0,
-                    borderTopRightRadius: 0,
+                    borderTopRightRadius: 10,
                     borderBottomLeftRadius: 10,
                     borderBottomRightRadius: 10,
                     background: '#23272b',
@@ -555,9 +555,9 @@ function App() {
                   fontWeight: 600,
                   fontSize: '1.05rem',
                   borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
+                  borderTopRightRadius: 10, // Rounded upper right corner
                   borderBottomLeftRadius: 0,
-                  borderBottomRightRadius: 0,
+                  borderBottomRightRadius: 0, // Not rounded
                   padding: '6px 18px 2px 18px',
                   border: '1px solid #343a40',
                   borderBottom: 'none',
@@ -569,7 +569,7 @@ function App() {
                   position: 'relative',
                 }}>Ask a question about the meeting</span>
               </div>
-              <div style={{ borderRadius: 6, boxShadow: qaGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 0.15s' }}>
+              <div style={{ borderRadius: 4, boxShadow: qaGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none', transition: 'box-shadow 0.15s' }}>
                 <InputGroup>
                   <Form.Control
                     type="text"
@@ -581,11 +581,13 @@ function App() {
                     style={{
                       background: '#23272b',
                       color: '#f1f1f1',
-                      boxShadow: 'none',
+                      boxShadow: qaGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none',
                       borderTopLeftRadius: 0,
                       borderTopRightRadius: 0,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 10,
+                      borderBottomLeftRadius: 6,
+                      borderBottomRightRadius: 0,
+                      outline: 'none',
+                      transition: 'box-shadow 0.15s',
                     }}
                     onFocus={() => setQaGroupFocused(true)}
                     onBlur={() => setQaGroupFocused(false)}
@@ -596,11 +598,13 @@ function App() {
                     disabled={qaLoading} 
                     style={{
                       minWidth: 80,
-                      boxShadow: 'none',
+                      boxShadow: qaGroupFocused ? '0 0 0 0.2rem #1976d2' : 'none',
                       borderTopLeftRadius: 0,
-                      borderTopRightRadius: 0,
+                      borderTopRightRadius: 6,
                       borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 10,
+                      borderBottomRightRadius: 6,
+                      outline: 'none',
+                      transition: 'box-shadow 0.15s',
                     }}
                     onFocus={() => setQaGroupFocused(true)}
                     onBlur={() => setQaGroupFocused(false)}
@@ -616,12 +620,12 @@ function App() {
             <>
               <div style={{ display: 'flex', alignItems: 'flex-end', height: 36, marginTop: 24 }}>
                 <span style={{
-                  background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)', // match choose file gradient
-                  color: '#f1f1f1', // match file input button text
+                  background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)',
+                  color: '#f1f1f1',
                   fontWeight: 600,
                   fontSize: '1.05rem',
                   borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
+                  borderTopRightRadius: 10, // Rounded upper right corner
                   padding: '6px 18px 2px 18px',
                   border: '1px solid #343a40',
                   borderBottom: 'none',
@@ -634,7 +638,8 @@ function App() {
                 }}>Answer:</span>
               </div>
               <div className="answer-box mt-0" style={{
-                maxHeight: 180, // reduced height
+                maxHeight: 120, // similar to transcript-box
+                minHeight: 32, // a bit more space for single-line answers
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 whiteSpace: 'pre-wrap',
@@ -642,14 +647,17 @@ function App() {
                 fontSize: '1.15rem',
                 border: '1px solid #343a40',
                 borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
+                borderTopRightRadius: 10, // Rounded upper right corner
                 borderBottomLeftRadius: 10,
                 borderBottomRightRadius: 10,
                 background: '#23272b',
                 position: 'relative',
                 zIndex: 1,
                 marginTop: 0, // remove extra margin
-                padding: 10, // less padding
+                padding: '1rem 1rem 1rem 1rem', // match transcript-box
+                boxShadow: '0 2px 8px #0002',
+                display: 'flex',
+                alignItems: 'flex-start',
               }}>
                 <div className="m-0" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit', fontSize: '1.15rem'}}>{answer}</div>
               </div>
