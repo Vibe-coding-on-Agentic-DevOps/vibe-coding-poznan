@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -8,6 +8,7 @@ from models import db, Transcription
 from werkzeug.utils import secure_filename
 import hashlib
 import json
+import subprocess
 
 # Load .env at the very top
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -26,8 +27,13 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 db.init_app(app)
 CORS(app)
 
+print(f"[DEBUG] Using database file: {app.config['SQLALCHEMY_DATABASE_URI']}")
+print('Using database URI:', app.config['SQLALCHEMY_DATABASE_URI'])
+
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+THUMBNAIL_FOLDER = os.path.join(UPLOAD_FOLDER, 'thumbnails')
+os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
 
 with app.app_context():
     db.create_all()
@@ -44,6 +50,18 @@ with app.app_context():
     except Exception as e:
         print(f"Error checking/adding segments column: {e}")
         db.session.rollback()
+
+def generate_thumbnail(video_path, thumbnail_path):
+    """Generate a thumbnail for a video file using ffmpeg."""
+    cmd = [
+        'ffmpeg', '-y', '-i', video_path, '-ss', '00:00:01.000', '-vframes', '1', thumbnail_path
+    ]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return result.returncode == 0
+
+@app.route('/thumbnails/<filename>')
+def get_thumbnail(filename):
+    return send_from_directory(THUMBNAIL_FOLDER, filename)
 
 @app.route('/files', methods=['GET'])
 def list_files():
@@ -64,10 +82,8 @@ def add_file():
     # Check for duplicate by filename
     existing = Transcription.query.filter_by(filename=filename).first()
     if existing and existing.file_hash == file_hash and existing.file_size == file_size:
-        # If hash and size match, skip and return error
         return jsonify({'error': 'File already exists.'}), 409
     elif existing:
-        # Otherwise, rename
         base, ext = os.path.splitext(filename)
         i = 1
         while True:
@@ -80,13 +96,23 @@ def add_file():
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     with open(file_path, 'wb') as f_out:
         f_out.write(file_content)
+    # Generate thumbnail if video
+    ext = os.path.splitext(filename)[1].lower()
+    video_exts = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.mpeg', '.mpg']
+    thumbnail_filename = None
+    if ext in video_exts:
+        thumbnail_filename = f"{os.path.splitext(filename)[0]}.jpg"
+        thumbnail_path = os.path.join(THUMBNAIL_FOLDER, thumbnail_filename)
+        if not generate_thumbnail(file_path, thumbnail_path):
+            thumbnail_filename = None
     # Save as a new record (no transcription)
     new_transcription = Transcription(
         filename=filename,
         transcription="",
         file_hash=file_hash,
         file_size=file_size,
-        segments=None  # No segments for files without transcription
+        segments=None,
+        thumbnail=thumbnail_filename
     )
     db.session.add(new_transcription)
     db.session.commit()
@@ -167,6 +193,15 @@ def transcribe():
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     with open(file_path, 'wb') as f_out:
         f_out.write(file_content)
+    # Generate thumbnail if video
+    ext = os.path.splitext(filename)[1].lower()
+    video_exts = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.mpeg', '.mpg']
+    thumbnail_filename = None
+    if ext in video_exts:
+        thumbnail_filename = f"{os.path.splitext(filename)[0]}.jpg"
+        thumbnail_path = os.path.join(THUMBNAIL_FOLDER, thumbnail_filename)
+        if not generate_thumbnail(file_path, thumbnail_path):
+            thumbnail_filename = None
     audio_path = file_path  # Use uploads path for processing
     temp_audio_created = False
     if ext not in audio_extensions:
@@ -241,7 +276,8 @@ def transcribe():
                     transcription=transcription,
                     file_hash=file_hash,
                     file_size=file_size,
-                    segments=json.dumps(word_segments)  # Save segments as JSON string
+                    segments=json.dumps(word_segments),
+                    thumbnail=thumbnail_filename
                 )
                 db.session.add(new_transcription)
                 db.session.commit()
