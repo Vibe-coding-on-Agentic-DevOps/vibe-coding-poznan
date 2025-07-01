@@ -333,5 +333,20 @@ def download_file(file_id):
         return jsonify({'error': 'File not available on server'}), 404
     return send_file(file_path, as_attachment=True, download_name=t.filename)
 
+@app.route('/files/<int:file_id>/download-txt', methods=['GET'])
+def download_transcription_txt(file_id):
+    t = db.session.get(Transcription, file_id)
+    if not t:
+        return jsonify({'error': 'File not found'}), 404
+    from io import BytesIO
+    txt_content = t.transcription or ''
+    filename = os.path.splitext(t.filename)[0] + '.txt'
+    return send_file(
+        BytesIO(txt_content.encode('utf-8')),
+        as_attachment=True,
+        download_name=filename,
+        mimetype='text/plain'
+    )
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
