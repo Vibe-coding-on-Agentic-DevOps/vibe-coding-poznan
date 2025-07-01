@@ -375,7 +375,7 @@ function App() {
                       fontWeight: 600,
                       fontSize: '1.05rem',
                       borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
+                      borderTopRightRadius: 10, // Rounded upper right corner
                       padding: '6px 18px 2px 18px',
                       border: '1px solid #343a40',
                       borderBottom: 'none',
@@ -397,9 +397,9 @@ function App() {
                           marginLeft: 0,
                           minWidth: 32,
                           width: 30,
-                          height: 36,
+                          height: 40, // Match height to Meeting Transcript
                           fontWeight: 600,
-                          borderTopRightRadius: 8,
+                          borderTopRightRadius: 10, // Rounded upper right corner
                           borderBottomLeftRadius: 0,
                           borderBottomRightRadius: 0,
                           boxShadow: '0 2px 8px #0002',
@@ -410,10 +410,10 @@ function App() {
                           border: '1px solid #343a40',
                           borderBottom: 'none',
                           display: 'flex',
-                          alignItems: 'flex-end', // align icon to bottom
+                          alignItems: 'center', // align icon to center
                           justifyContent: 'center',
                           position: 'relative',
-                          top: 5, // nudge down for alignment with text field
+                          top: 0, // align with text field
                         }}
                         onClick={handleDownloadTxt}
                         title="Download as TXT"
@@ -555,9 +555,9 @@ function App() {
                   fontWeight: 600,
                   fontSize: '1.05rem',
                   borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
+                  borderTopRightRadius: 10, // Rounded upper right corner
                   borderBottomLeftRadius: 0,
-                  borderBottomRightRadius: 0,
+                  borderBottomRightRadius: 0, // Not rounded
                   padding: '6px 18px 2px 18px',
                   border: '1px solid #343a40',
                   borderBottom: 'none',
@@ -621,7 +621,7 @@ function App() {
                   fontWeight: 600,
                   fontSize: '1.05rem',
                   borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
+                  borderTopRightRadius: 10, // Rounded upper right corner
                   padding: '6px 18px 2px 18px',
                   border: '1px solid #343a40',
                   borderBottom: 'none',
@@ -634,7 +634,7 @@ function App() {
                 }}>Answer:</span>
               </div>
               <div className="answer-box mt-0" style={{
-                maxHeight: 180, // reduced height
+                maxHeight: 120, // reduced height for better proportion
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 whiteSpace: 'pre-wrap',
@@ -642,7 +642,7 @@ function App() {
                 fontSize: '1.15rem',
                 border: '1px solid #343a40',
                 borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
+                borderTopRightRadius: 10, // Rounded upper right corner
                 borderBottomLeftRadius: 10,
                 borderBottomRightRadius: 10,
                 background: '#23272b',
