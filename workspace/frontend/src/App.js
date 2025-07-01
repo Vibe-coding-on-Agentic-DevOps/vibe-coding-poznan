@@ -3,6 +3,7 @@ import { Container, Form, Button, Alert, Spinner, InputGroup, Nav } from 'react-
 import 'bootstrap/dist/css/bootstrap.min.css';
 import DatabaseSearch from './DatabaseSearch';
 import DatabaseGallery from './DatabaseGallery';
+import { saveAs } from 'file-saver';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -27,6 +28,7 @@ function App() {
   const [hoveredSegment, setHoveredSegment] = useState(null);
   const [segmentWordCounts, setSegmentWordCounts] = useState([]); // NEW: store word count per segment
   const totalWordsRef = useRef(0); // NEW: store total word count
+  const [fileId, setFileId] = useState(null); // Track fileId for download
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -38,9 +40,10 @@ function App() {
     setVideoUrl(file ? URL.createObjectURL(file) : null);
     setSegments([]);
     setActiveSegment(null);
-    setFileGroupFocused(false); // Remove blue backlight after file upload
-    setSearchTerm(''); // Clear search input
-    setSearchResults([]); // Clear search results
+    setFileGroupFocused(false);
+    setSearchTerm('');
+    setSearchResults([]);
+    setFileId(null); // Reset fileId
   };
 
   const handleTimeUpdate = (e) => {
@@ -190,6 +193,7 @@ function App() {
           setSegmentWordCounts([]);
           totalWordsRef.current = 0;
         }
+        setFileId(fileObj.id || null); // Set fileId for download
       } catch {
         setError('Failed to fetch transcription.');
       }
@@ -215,6 +219,31 @@ function App() {
         return { ...seg, start, end };
       });
       setSegments(newSegments);
+    }
+  };
+
+  // Download transcription as TXT
+  const handleDownloadTxt = async () => {
+    if (!fileId) {
+      // fallback: download current transcription as txt
+      const blob = new Blob([transcription], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, 'transcription.txt');
+      return;
+    }
+    try {
+      const res = await fetch(`/files/${fileId}/download-txt`);
+      if (!res.ok) throw new Error('Failed to download TXT');
+      const blob = await res.blob();
+      // Try to get filename from Content-Disposition
+      let filename = 'transcription.txt';
+      const disposition = res.headers.get('Content-Disposition');
+      if (disposition && disposition.indexOf('filename=') !== -1) {
+        filename = disposition.split('filename=')[1].replace(/['"]/g, '');
+      }
+      saveAs(blob, filename);
+    } catch {
+      const blob = new Blob([transcription], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, 'transcription.txt');
     }
   };
 
@@ -339,7 +368,7 @@ function App() {
             <div style={{ flex: 3, minWidth: 0 }}>
               {(segments.length > 0 || transcription) && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', height: 36 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', height: 40, gap: 0 }}>
                     <span style={{
                       background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)',
                       color: '#f1f1f1',
@@ -356,7 +385,45 @@ function App() {
                       letterSpacing: '0.5px',
                       zIndex: 2,
                       position: 'relative',
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'center',
                     }}>Meeting Transcript:</span>
+                    {transcription && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        style={{
+                          marginLeft: 0,
+                          minWidth: 32,
+                          width: 30,
+                          height: 36,
+                          fontWeight: 600,
+                          borderTopRightRadius: 8,
+                          borderBottomLeftRadius: 0,
+                          borderBottomRightRadius: 0,
+                          boxShadow: '0 2px 8px #0002',
+                          color: '#fff',
+                          fontFamily: 'inherit',
+                          fontSize: '1.15rem',
+                          padding: 0,
+                          border: '1px solid #343a40',
+                          borderBottom: 'none',
+                          display: 'flex',
+                          alignItems: 'flex-end', // align icon to bottom
+                          justifyContent: 'center',
+                          position: 'relative',
+                          top: 5, // nudge down for alignment with text field
+                        }}
+                        onClick={handleDownloadTxt}
+                        title="Download as TXT"
+                      >
+                        <svg width="18" height="35" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M10 3V14M10 14L5 9M10 14L15 9" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <rect x="4" y="16" width="12" height="2" rx="1" fill="#fff"/>
+                        </svg>
+                      </Button>
+                    )}
                   </div>
                   <div className="transcript-box" style={{
                     maxHeight: 350,
