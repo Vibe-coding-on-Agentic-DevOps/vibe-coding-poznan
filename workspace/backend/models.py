@@ -13,6 +13,7 @@ class Transcription(db.Model):
     file_size = db.Column(db.Integer, nullable=True)
     segments = db.Column(db.Text, nullable=True)  # JSON string storing word-level timing segments
     thumbnail = db.Column(db.String(256), nullable=True)
+    transcription_status = db.Column(db.String(32), nullable=False, default='not_transcribed')
 
     def to_dict(self):
         segments_data = []
@@ -30,5 +31,6 @@ class Transcription(db.Model):
             'file_hash': self.file_hash,
             'file_size': self.file_size,
             'segments': segments_data,
-            'thumbnail': self.thumbnail
+            'thumbnail': self.thumbnail,
+            'transcription_status': self.transcription_status
         }

@@ -15,6 +15,9 @@ export default function DatabaseGallery({ onTranscribeFile }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [hoveredDeleteId, setHoveredDeleteId] = useState(null);
   const [showThumbnails, setShowThumbnails] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = React.useRef();
 
   useEffect(() => {
     fetchFiles();
@@ -44,10 +47,42 @@ export default function DatabaseGallery({ onTranscribeFile }) {
     if (onTranscribeFile) onTranscribeFile(fileObj);
   }
 
+  async function handleDirectUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError("");
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/files', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      fetchFiles();
+    } catch (err) {
+      setUploadError(err.message);
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handleTranscribeRequest(fileObj) {
+    if (!fileObj || !fileObj.id) return;
+    try {
+      const res = await fetch(`/files/${fileObj.id}/transcribe`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Transcription failed');
+      fetchFiles();
+      // Do not call onTranscribeFile here, so user stays in gallery
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div style={{ minHeight: 300, position: 'relative' }}>
       <h3 style={{ color: '#e3e5e8', marginBottom: 24 }}>Transcribed Files Gallery</h3>
-      <div style={{ position: 'absolute', top: 0, right: 0, margin: 16, zIndex: 2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Form.Check 
           type="switch"
           id="thumbnail-switch"
@@ -56,7 +91,26 @@ export default function DatabaseGallery({ onTranscribeFile }) {
           onChange={() => setShowThumbnails(v => !v)}
           style={{ color: '#e3e5e8', fontWeight: 500 }}
         />
+        <div>
+          <input
+            type="file"
+            accept="video/*"
+            style={{ display: 'none' }}
+            ref={fileInputRef}
+            onChange={handleDirectUpload}
+          />
+          <Button
+            variant="success"
+            size="sm"
+            style={{ fontWeight: 600, borderRadius: 8, marginLeft: 8 }}
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            disabled={uploading}
+          >
+            {uploading ? <Spinner animation="border" size="sm" /> : 'Add Video'}
+          </Button>
+        </div>
       </div>
+      {uploadError && <div style={{ color: 'red', marginBottom: 8 }}>{uploadError}</div>}
       {loading ? <Spinner animation="border" /> : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
           {files.map(f => (
@@ -109,6 +163,21 @@ export default function DatabaseGallery({ onTranscribeFile }) {
                 textAlign: 'center',
               }}>
                 {f.filename}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                <span style={{ fontSize: 13, color: f.transcription_status === 'transcribed' ? '#4caf50' : '#ff9800', fontWeight: 700, letterSpacing: 0.5 }}>
+                  {f.transcription_status === 'transcribed' ? 'Transcribed' : 'Not Transcribed'}
+                </span>
+                {f.transcription_status !== 'transcribed' && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    style={{ fontWeight: 600, borderRadius: 8, marginLeft: 8 }}
+                    onClick={e => { e.stopPropagation(); handleTranscribeRequest(f); }}
+                  >
+                    Transcribe
+                  </Button>
+                )}
               </div>
               <Button 
                 variant="danger" 

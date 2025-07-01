@@ -194,6 +194,10 @@ function App() {
           totalWordsRef.current = 0;
         }
         setFileId(fileObj.id || null); // Set fileId for download
+        // Show info if not transcribed
+        if (fileObj.transcription_status !== 'transcribed') {
+          setError('This video has not been transcribed yet. Please transcribe it to enable transcript features.');
+        }
       } catch {
         setError('Failed to fetch transcription.');
       }

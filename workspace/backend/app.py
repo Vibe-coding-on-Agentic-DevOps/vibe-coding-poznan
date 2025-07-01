@@ -112,7 +112,8 @@ def add_file():
         file_hash=file_hash,
         file_size=file_size,
         segments=None,
-        thumbnail=thumbnail_filename
+        thumbnail=thumbnail_filename,
+        transcription_status="not_transcribed"
     )
     db.session.add(new_transcription)
     db.session.commit()
@@ -277,7 +278,8 @@ def transcribe():
                     file_hash=file_hash,
                     file_size=file_size,
                     segments=json.dumps(word_segments),
-                    thumbnail=thumbnail_filename
+                    thumbnail=thumbnail_filename,
+                    transcription_status="transcribed"
                 )
                 db.session.add(new_transcription)
                 db.session.commit()
@@ -290,6 +292,89 @@ def transcribe():
             os.remove(audio_path)
     return jsonify({'transcription': transcription, 'segments': word_segments})
 
+@app.route('/files/<int:file_id>/transcribe', methods=['POST'])
+def transcribe_by_id(file_id):
+    t = Transcription.query.get(file_id)
+    if not t:
+        return jsonify({'error': 'File not found'}), 404
+    if t.transcription_status == 'transcribed':
+        return jsonify({'error': 'Already transcribed', 'file': t.to_dict()}), 400
+    file_path = os.path.join(UPLOAD_FOLDER, t.filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found on server'}), 404
+    # Extract audio if needed
+    ext = os.path.splitext(t.filename)[1].lower()
+    audio_extensions = {'.flac', '.m4a', '.mp3', '.mp4', '.mpeg', '.mpga', '.oga', '.ogg', '.wav', '.webm'}
+    audio_path = file_path
+    temp_audio_created = False
+    if ext not in audio_extensions:
+        audio_path = file_path + '.mp3'
+        temp_audio_created = True
+        ffmpeg_cmd = [
+            'ffmpeg', '-y', '-i', file_path, '-vn', '-acodec', 'mp3', audio_path
+        ]
+        result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            return jsonify({'error': 'Failed to extract audio from video.'}), 500
+    try:
+        with open(audio_path, 'rb') as audio_file:
+            headers = {'api-key': AZURE_OPENAI_KEY}
+            files = {'file': (os.path.basename(audio_path), audio_file, 'audio/mpeg')}
+            response = requests.post(
+                AZURE_OPENAI_ENDPOINT,
+                headers=headers,
+                files=files,
+                data={'response_format': 'verbose_json'}
+            )
+            if response.ok:
+                data = response.json()
+                transcription = data.get('text', '')
+                segments = data.get('segments', [])
+                word_segments = []
+                has_words = False
+                for seg in segments:
+                    if 'words' in seg and seg['words']:
+                        has_words = True
+                        for word in seg['words']:
+                            word_segments.append({
+                                'text': word['word'],
+                                'start': word['start'],
+                                'end': word['end']
+                            })
+                if not has_words:
+                    chunk_size = 3
+                    for seg in segments:
+                        words = seg.get('text', '').split()
+                        start = seg.get('start', 0)
+                        end = seg.get('end', 0)
+                        if not words:
+                            continue
+                        duration = (end - start) / max(len(words), 1) if end > start else 0
+                        for i in range(0, len(words), chunk_size):
+                            chunk_words = words[i:i+chunk_size]
+                            chunk_start = start + (i * duration)
+                            chunk_end = chunk_start + (len(chunk_words) * duration)
+                            word_segments.append({
+                                'text': ' '.join(chunk_words),
+                                'start': chunk_start,
+                                'end': chunk_end
+                            })
+                if not word_segments:
+                    word_segments = [{
+                        'text': transcription,
+                        'start': 0,
+                        'end': 0
+                    }]
+                t.transcription = transcription
+                t.segments = json.dumps(word_segments)
+                t.transcription_status = 'transcribed'
+                db.session.commit()
+                return jsonify({'file': t.to_dict()})
+            else:
+                return jsonify({'error': response.text}), response.status_code
+    finally:
+        if temp_audio_created and os.path.exists(audio_path):
+            os.remove(audio_path)
 @app.route('/ask', methods=['POST'])
 def ask():
     data = request.get_json()
