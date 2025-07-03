@@ -14,7 +14,11 @@ export default function DatabaseGallery({ onTranscribeFile }) {
   const [error, setError] = useState("");
   const [hoveredId, setHoveredId] = useState(null);
   const [hoveredDeleteId, setHoveredDeleteId] = useState(null);
-  const [showThumbnails, setShowThumbnails] = useState(false);
+  const [showThumbnails, setShowThumbnails] = useState(() => {
+    // Load the setting from localStorage, default to false if not found
+    const saved = localStorage.getItem('showThumbnails');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [transcribingId, setTranscribingId] = useState(null);
@@ -25,6 +29,11 @@ export default function DatabaseGallery({ onTranscribeFile }) {
   useEffect(() => {
     fetchFiles();
   }, []);
+
+  // Save thumbnail setting to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('showThumbnails', JSON.stringify(showThumbnails));
+  }, [showThumbnails]);
 
   async function fetchFiles() {
     setLoading(true);
