@@ -29,6 +29,7 @@ function App() {
   const [segmentWordCounts, setSegmentWordCounts] = useState([]); // NEW: store word count per segment
   const totalWordsRef = useRef(0); // NEW: store total word count
   const [fileId, setFileId] = useState(null); // Track fileId for download
+  const [selectedDbFile, setSelectedDbFile] = useState(null); // Track selected DB file
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -166,6 +167,8 @@ function App() {
       try {
         setVideoUrl(`/files/${fileObj.id}/download`);
         setTranscription(fileObj.transcription || '');
+        setFileId(fileObj.id || null); // Set fileId for download
+        setSelectedDbFile(fileObj); // NEW: track selected DB file
         if (fileObj.segments && Array.isArray(fileObj.segments) && fileObj.segments.length > 0) {
           setSegments(fileObj.segments);
           setSegmentWordCounts([]);
@@ -193,7 +196,6 @@ function App() {
           setSegmentWordCounts([]);
           totalWordsRef.current = 0;
         }
-        setFileId(fileObj.id || null); // Set fileId for download
         // Show info if not transcribed
         if (fileObj.transcription_status !== 'transcribed') {
           setError('This video has not been transcribed yet. Please transcribe it to enable transcript features.');
@@ -250,6 +252,27 @@ function App() {
       saveAs(blob, 'transcription.txt');
     }
   };
+
+  // Add handler for transcribing selected DB file
+  async function handleTranscribeSelectedDbFile() {
+    if (!selectedDbFile || !selectedDbFile.id) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/files/${selectedDbFile.id}/transcribe`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Transcription failed');
+      // Update UI with new transcription
+      setTranscription(data.file.transcription || '');
+      setSegments(Array.isArray(data.file.segments) ? data.file.segments : []);
+      setFileId(selectedDbFile.id);
+      setSelectedDbFile({ ...selectedDbFile, ...data.file });
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }
 
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
