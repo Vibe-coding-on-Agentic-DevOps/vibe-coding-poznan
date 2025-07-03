@@ -9,6 +9,7 @@ function DatabaseSearch({ onTranscribeFile }) {
   const [error, setError] = useState('');
   const [dbQuestion, setDbQuestion] = useState('');
   const [dbAnswer, setDbAnswer] = useState('');
+  const [dbSources, setDbSources] = useState([]);
   const [dbQaLoading, setDbQaLoading] = useState(false);
 
   const handleSearch = async (e) => {
@@ -34,6 +35,7 @@ function DatabaseSearch({ onTranscribeFile }) {
     e.preventDefault();
     setDbQaLoading(true);
     setDbAnswer('');
+    setDbSources([]);
     setError('');
     try {
       const response = await fetch('/ask-database', {
@@ -44,6 +46,7 @@ function DatabaseSearch({ onTranscribeFile }) {
       const data = await response.json();
       if (response.ok) {
         setDbAnswer(data.answer);
+        setDbSources(Array.isArray(data.sources) ? data.sources : []);
       } else {
         setError(data.error || 'Prompt failed.');
       }
@@ -121,6 +124,40 @@ function DatabaseSearch({ onTranscribeFile }) {
       {dbAnswer && (
         <div style={{ background: '#23272b', color: '#f1f1f1', borderRadius: 8, padding: 16, marginTop: 12, fontSize: '1.1rem', maxWidth: 800, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
           <b>Answer:</b> {dbAnswer}
+          {dbSources.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: '0.98rem', color: '#b0b0b0', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+              <b>Source{dbSources.length > 1 ? 's' : ''}:</b>{' '}
+              {dbSources.map((s, i) => (
+                <span
+                  key={s.id}
+                  style={{ cursor: 'pointer', color: '#4da3ff', textDecoration: 'underline', marginRight: 6 }}
+                  onClick={async () => {
+                    if (!onTranscribeFile) return;
+                    try {
+                      // Load the file list as in DatabaseGallery, then find the file by id
+                      const res = await fetch('/files');
+                      const data = await res.json();
+                      if (res.ok && Array.isArray(data.files)) {
+                        const file = data.files.find(f => f.id === s.id);
+                        if (file) {
+                          onTranscribeFile(file);
+                        } else {
+                          alert('File not found in database.');
+                        }
+                      } else {
+                        alert('Could not load file info.');
+                      }
+                    } catch {
+                      alert('Could not load file info.');
+                    }
+                  }}
+                  title={`View transcript for ${s.filename}`}
+                >
+                  {s.filename}{i < dbSources.length - 1 ? ',' : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </Container>

@@ -505,8 +505,13 @@ def ask_database():
     question = data.get('question')
     if not question:
         return jsonify({'error': 'Question is required.'}), 400
-    # Concatenate all transcriptions
-    all_transcripts = '\n\n'.join([t.transcription for t in Transcription.query.all()])
+    # Gather all transcriptions and their sources
+    transcriptions = Transcription.query.all()
+    all_transcripts = '\n\n'.join([t.transcription for t in transcriptions])
+    sources = [
+        {'id': t.id, 'filename': t.filename, 'created_at': t.created_at.isoformat() if t.created_at else None}
+        for t in transcriptions
+    ]
     prompt = f"Database of transcripts:\n{all_transcripts}\n\nQuestion: {question}\nAnswer:"
     headers = {
         'api-key': get_env_var('AZURE_GPT_KEY'),
@@ -526,7 +531,7 @@ def ask_database():
     if response.ok:
         data = response.json()
         answer = data['choices'][0]['message']['content']
-        return jsonify({'answer': answer})
+        return jsonify({'answer': answer, 'sources': sources})
     else:
         return jsonify({'error': response.text}), response.status_code
 
