@@ -150,8 +150,11 @@ function App() {
     }
   };
 
-  async function handleTranscribeFileFromGallery(fileObj) {
-    // If fileObj has an id, fetch its transcription from the backend
+  // Accept optional highlight info: { text, index }
+  // Highlight state for search redirection
+  const [highlightInfo, setHighlightInfo] = useState(null);
+
+  async function handleTranscribeFileFromGallery(fileObj, highlight) {
     if (fileObj && fileObj.id) {
       setLoading(true);
       setError('');
@@ -164,15 +167,18 @@ function App() {
       setSearchResults([]);
       setFile(null);
       setPage('transcribe');
+      setHighlightInfo(null); // Reset highlight
       try {
         setVideoUrl(`/files/${fileObj.id}/download`);
         setTranscription(fileObj.transcription || '');
+        let segs = [];
         setFileId(fileObj.id || null); // Set fileId for download
         setSelectedDbFile(fileObj); // NEW: track selected DB file
         if (fileObj.segments && Array.isArray(fileObj.segments) && fileObj.segments.length > 0) {
           setSegments(fileObj.segments);
           setSegmentWordCounts([]);
           totalWordsRef.current = 0;
+          segs = fileObj.segments;
         } else if (fileObj.transcription) {
           const words = fileObj.transcription.split(/\s+/).filter(Boolean);
           const chunkSize = 3;
@@ -191,14 +197,47 @@ function App() {
           setSegments(wordSegments);
           setSegmentWordCounts(wordCounts);
           totalWordsRef.current = words.length;
+          segs = wordSegments;
         } else {
           setSegments([]);
           setSegmentWordCounts([]);
           totalWordsRef.current = 0;
         }
+        setFileId(fileObj.id || null);
         // Show info if not transcribed
         if (fileObj.transcription_status !== 'transcribed') {
           setError('This video has not been transcribed yet. Please transcribe it to enable transcript features.');
+        }
+        // Set highlight info for rendering
+        if (highlight && highlight.index !== undefined && highlight.index !== null) {
+          setTimeout(() => {
+            setHighlightInfo({ ...highlight, ts: Date.now() });
+            // Seek to the segment containing the match
+            if (segs && segs.length > 0) {
+              // Find the segment whose text contains the match, or whose text range covers the match index
+              let charCount = 0;
+              let foundIdx = null;
+              for (let i = 0; i < segs.length; ++i) {
+                const segText = segs[i].text;
+                const segStart = charCount;
+                const segEnd = charCount + segText.length;
+                if (highlight.index >= segStart && highlight.index < segEnd) {
+                  foundIdx = i;
+                  break;
+                }
+                charCount = segEnd + 1; // +1 for space
+              }
+              if (foundIdx !== null && segs[foundIdx].start !== undefined) {
+                // Wait for video to be ready
+                setTimeout(() => {
+                  const video = document.querySelector('video');
+                  if (video && typeof segs[foundIdx].start === 'number') {
+                    video.currentTime = segs[foundIdx].start;
+                  }
+                }, 400);
+              }
+            }
+          }, 600); // Wait for render
         }
       } catch {
         setError('Failed to fetch transcription.');
@@ -230,10 +269,14 @@ function App() {
 
   // Download transcription as TXT
   const handleDownloadTxt = async () => {
+    let defaultName = 'transcription.txt';
+    if (file && file.name) {
+      defaultName = file.name.replace(/\.[^/.]+$/, '') + '.txt';
+    }
     if (!fileId) {
       // fallback: download current transcription as txt
       const blob = new Blob([transcription], { type: 'text/plain;charset=utf-8' });
-      saveAs(blob, 'transcription.txt');
+      saveAs(blob, defaultName);
       return;
     }
     try {
@@ -241,7 +284,7 @@ function App() {
       if (!res.ok) throw new Error('Failed to download TXT');
       const blob = await res.blob();
       // Try to get filename from Content-Disposition
-      let filename = 'transcription.txt';
+      let filename = defaultName;
       const disposition = res.headers.get('Content-Disposition');
       if (disposition && disposition.indexOf('filename=') !== -1) {
         filename = disposition.split('filename=')[1].replace(/['"]/g, '');
@@ -249,7 +292,7 @@ function App() {
       saveAs(blob, filename);
     } catch {
       const blob = new Blob([transcription], { type: 'text/plain;charset=utf-8' });
-      saveAs(blob, 'transcription.txt');
+      saveAs(blob, defaultName);
     }
   };
 
@@ -323,7 +366,7 @@ function App() {
           }}>Database</Nav.Link>
         </Nav.Item>
       </Nav>
-      {page === 'database-search' && <DatabaseSearch />}
+      {page === 'database-search' && <DatabaseSearch onTranscribeFile={handleTranscribeFileFromGallery} />}
       {page === 'database' && <DatabaseGallery onTranscribeFile={handleTranscribeFileFromGallery} />}
       {page === 'transcribe' && (
         <>
@@ -499,7 +542,23 @@ function App() {
                               {seg.text + ' '}
                             </span>
                           ))
-                        : transcription}
+                        : (() => {
+                            if (highlightInfo && highlightInfo.index !== undefined && highlightInfo.text) {
+                              // Render with highlight
+                              const before = transcription.slice(0, highlightInfo.index);
+                              const match = transcription.slice(highlightInfo.index, highlightInfo.index + highlightInfo.text.length);
+                              const after = transcription.slice(highlightInfo.index + highlightInfo.text.length);
+                              // Remove highlight after 1.8s
+                              setTimeout(() => setHighlightInfo(null), 1800);
+                              return <>
+                                {before}
+                                <span id="highlighted-search" style={{ background: '#ffe066', color: '#23272b', borderRadius: 4, padding: '2px 4px' }}>{match}</span>
+                                {after}
+                              </>;
+                            } else {
+                              return transcription;
+                            }
+                          })()}
                     </div>
                   </div>
                 </>

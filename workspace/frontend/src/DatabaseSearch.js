@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Container, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 
-function DatabaseSearch() {
+// Accept onTranscribeFile as a prop
+function DatabaseSearch({ onTranscribeFile }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -74,9 +75,29 @@ function DatabaseSearch() {
           <b>Results:</b>
           <ul style={{ paddingLeft: 18 }}>
             {results.map((res, i) => (
-              <li key={i}>
+              <li key={i} style={{ marginBottom: 16 }}>
                 <b>{res.filename}</b> <span style={{ color: '#aaa', fontSize: '0.9em' }}>({res.created_at})</span>
                 <div style={{ marginTop: 4, marginBottom: 8 }}>{res.transcription.slice(0, 300)}{res.transcription.length > 300 ? '...' : ''}</div>
+                {onTranscribeFile && (
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    style={{ fontWeight: 600, borderRadius: 8, marginTop: 2 }}
+                    onClick={() => {
+                      // Try to find the matching text index in the transcription
+                      let highlight = null;
+                      if (query && res.transcription) {
+                        const idx = res.transcription.toLowerCase().indexOf(query.toLowerCase());
+                        if (idx !== -1) {
+                          highlight = { text: query, index: idx };
+                        }
+                      }
+                      onTranscribeFile(res, highlight);
+                    }}
+                  >
+                    View in Transcribe
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
