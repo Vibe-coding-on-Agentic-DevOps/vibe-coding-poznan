@@ -1,14 +1,10 @@
 # --- Build frontend ---
-
-# --- Build frontend ---
 FROM node:18 AS frontend-build
 WORKDIR /app/frontend
-COPY workspace/frontend/package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
-COPY workspace/frontend/ ./
+COPY frontend/ ./
 RUN npm run build
-
-# --- Build backend ---
 
 # --- Build backend ---
 FROM python:3.10-slim AS backend
@@ -16,8 +12,6 @@ WORKDIR /app/backend
 COPY workspace/backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY workspace/backend/ ./
-
-# --- Final image ---
 
 # --- Final image ---
 FROM python:3.10-slim
