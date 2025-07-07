@@ -1,5 +1,7 @@
 # 🤖 Meeting Assistant
 
+🌐 **Try the app live:** [https://meetingassistant-app.azurewebsites.net/](https://meetingassistant-app.azurewebsites.net/)
+
 A modern, user-friendly web app for instantly transcribing your meetings, lectures, interviews, or any video/audio content—using Azure OpenAI Whisper and GPT. Effortlessly search, jump to moments, and ask questions about your content to save time and boost productivity! 🚀
 
 ---
