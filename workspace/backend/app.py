@@ -560,5 +560,20 @@ def download_transcription_txt(file_id):
         mimetype='text/plain'
     )
 
+
+# --- Serve React frontend for all non-API routes ---
+import os
+from flask import send_from_directory
+
+# This must be after all other @app.route definitions
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    static_folder = os.path.join(os.path.dirname(__file__), 'static')
+    if path != "" and os.path.exists(os.path.join(static_folder, path)):
+        return send_from_directory(static_folder, path)
+    else:
+        return send_from_directory(static_folder, 'index.html')
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

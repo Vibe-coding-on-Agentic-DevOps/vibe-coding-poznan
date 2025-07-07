@@ -21,7 +21,14 @@ WORKDIR /app
 COPY --from=backend /app/backend /app/backend
 
 
-COPY --from=frontend-build /app/frontend/build /app/backend/static
+COPY --from=frontend-build /app/frontend/build/ /app/backend/static/
+
+# Flatten the static directory so /static/js/* is directly accessible
+RUN if [ -d /app/backend/static/static ]; then mv /app/backend/static/static/* /app/backend/static/ && rmdir /app/backend/static/static; fi
+
+
+# Install ffmpeg for video/audio processing
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies in the final image
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
