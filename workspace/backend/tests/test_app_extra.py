@@ -66,3 +66,64 @@ def test_ask_no_data(client):
 def test_ask_database_no_question(client):
     rv = client.post('/ask-database', json={})
     assert rv.status_code == 400 or rv.status_code == 200
+
+# Test batch delete endpoint
+def test_batch_delete_files(client):
+    # Add some test files first (use audio files to avoid ffmpeg dependency)
+    file1_data = {'file': (tempfile.NamedTemporaryFile(suffix='.mp3'), 'test1.mp3')}
+    file2_data = {'file': (tempfile.NamedTemporaryFile(suffix='.wav'), 'test2.wav')}
+    
+    rv1 = client.post('/files', data=file1_data, content_type='multipart/form-data')
+    rv2 = client.post('/files', data=file2_data, content_type='multipart/form-data')
+    
+    if rv1.status_code == 200:
+        file1_id = rv1.get_json()['file']['id']
+        if rv2.status_code == 200:
+            file2_id = rv2.get_json()['file']['id']
+            
+            # Test batch delete
+            rv = client.post('/files/batch-delete', json={'file_ids': [file1_id, file2_id]})
+            assert rv.status_code == 200
+            data = rv.get_json()
+            assert data['success'] is True
+            assert data['deleted_count'] >= 0
+
+# Test batch delete with invalid data
+def test_batch_delete_invalid_data(client):
+    rv = client.post('/files/batch-delete', json={})
+    assert rv.status_code == 400
+    
+    rv = client.post('/files/batch-delete', json={'file_ids': 'not_an_array'})
+    assert rv.status_code == 400
+
+# Test delete all files endpoint
+def test_delete_all_files(client):
+    rv = client.delete('/files/all')
+    assert rv.status_code == 200
+    data = rv.get_json()
+    assert data['success'] is True
+    assert 'deleted_count' in data
+
+# Test batch transcribe endpoint
+def test_batch_transcribe_files(client):
+    # Add a test file first
+    file_data = {'file': (tempfile.NamedTemporaryFile(suffix='.mp3'), 'test_transcribe.mp3')}
+    rv = client.post('/files', data=file_data, content_type='multipart/form-data')
+    
+    if rv.status_code == 200:
+        file_id = rv.get_json()['file']['id']
+        
+        # Test batch transcribe
+        rv = client.post('/files/batch-transcribe', json={'file_ids': [file_id]})
+        assert rv.status_code == 200
+        data = rv.get_json()
+        assert data['success'] is True
+        assert 'transcribed_count' in data
+
+# Test batch transcribe with invalid data
+def test_batch_transcribe_invalid_data(client):
+    rv = client.post('/files/batch-transcribe', json={})
+    assert rv.status_code == 400
+    
+    rv = client.post('/files/batch-transcribe', json={'file_ids': 'not_an_array'})
+    assert rv.status_code == 400

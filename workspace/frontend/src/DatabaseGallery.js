@@ -24,6 +24,8 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
   const [transcribingId, setTranscribingId] = useState(null);
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState(new Set());
+  const [batchOperationLoading, setBatchOperationLoading] = useState(false);
   const fileInputRef = React.useRef();
 
   useEffect(() => {
@@ -92,6 +94,134 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
       setError(err.message);
     }
     setTranscribingId(null);
+  }
+
+  // Selection management functions
+  function toggleFileSelection(fileId) {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileId)) {
+        newSet.delete(fileId);
+      } else {
+        newSet.add(fileId);
+      }
+      return newSet;
+    });
+  }
+
+  function toggleSelectAll() {
+    const filteredFiles = files.filter(f => !search || f.filename.toLowerCase().includes(search.toLowerCase()));
+    if (selectedFiles.size === filteredFiles.length) {
+      setSelectedFiles(new Set());
+    } else {
+      setSelectedFiles(new Set(filteredFiles.map(f => f.id)));
+    }
+  }
+
+  // Batch operation handlers
+  async function handleBatchDelete() {
+    if (selectedFiles.size === 0) return;
+    
+    const fileIds = Array.from(selectedFiles);
+    const fileNames = fileIds.map(id => files.find(f => f.id === id)?.filename).filter(Boolean);
+    
+    if (!window.confirm(`Delete ${fileIds.length} selected files and their transcriptions?\n\nFiles: ${fileNames.join(', ')}`)) return;
+    
+    setBatchOperationLoading(true);
+    setError("");
+    
+    try {
+      const res = await fetch('/files/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_ids: fileIds })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Batch delete failed');
+      
+      setSelectedFiles(new Set());
+      fetchFiles();
+      
+      if (data.errors && data.errors.length > 0) {
+        setError(`Some files could not be deleted: ${data.errors.join(', ')}`);
+      }
+      
+      // Notify parent about deletions
+      if (onFileDeleted) {
+        fileIds.forEach(id => onFileDeleted(id));
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    
+    setBatchOperationLoading(false);
+  }
+
+  async function handleBatchTranscribe() {
+    if (selectedFiles.size === 0) return;
+    
+    const fileIds = Array.from(selectedFiles);
+    const untranscribedFiles = fileIds.filter(id => {
+      const file = files.find(f => f.id === id);
+      return file && file.transcription_status !== 'transcribed';
+    });
+    
+    if (untranscribedFiles.length === 0) {
+      setError("All selected files are already transcribed.");
+      return;
+    }
+    
+    setBatchOperationLoading(true);
+    setError("");
+    
+    try {
+      const res = await fetch('/files/batch-transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_ids: untranscribedFiles })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Batch transcribe failed');
+      
+      fetchFiles();
+      
+      if (data.errors && data.errors.length > 0) {
+        setError(`Some files could not be transcribed: ${data.errors.join(', ')}`);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    
+    setBatchOperationLoading(false);
+  }
+
+  async function handleDeleteAll() {
+    if (files.length === 0) return;
+    
+    if (!window.confirm(`Delete ALL ${files.length} files and their transcriptions? This cannot be undone.`)) return;
+    
+    setBatchOperationLoading(true);
+    setError("");
+    
+    try {
+      const res = await fetch('/files/all', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Delete all failed');
+      
+      setSelectedFiles(new Set());
+      fetchFiles();
+      
+      // Notify parent about all deletions
+      if (onFileDeleted) {
+        files.forEach(file => onFileDeleted(file.id));
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    
+    setBatchOperationLoading(false);
   }
 
   return (
@@ -175,6 +305,71 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
           style={{ color: '#e3e5e8', fontWeight: 500 }}
         />
       </div>
+      
+      {/* Multi-select controls */}
+      {files.length > 0 && (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          marginBottom: 16, 
+          padding: '12px 16px', 
+          background: '#1e2125', 
+          borderRadius: 8,
+          border: '1px solid #2a2e33'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Form.Check
+              type="checkbox"
+              id="select-all"
+              label={`Select All (${files.filter(f => !search || f.filename.toLowerCase().includes(search.toLowerCase())).length})`}
+              checked={selectedFiles.size > 0 && selectedFiles.size === files.filter(f => !search || f.filename.toLowerCase().includes(search.toLowerCase())).length}
+              onChange={toggleSelectAll}
+              style={{ color: '#e3e5e8', fontWeight: 500 }}
+            />
+            {selectedFiles.size > 0 && (
+              <span style={{ color: '#4caf50', fontWeight: 600, fontSize: 14 }}>
+                {selectedFiles.size} selected
+              </span>
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {selectedFiles.size > 0 && (
+              <>
+                <Button
+                  variant="success"
+                  size="sm"
+                  disabled={batchOperationLoading}
+                  onClick={handleBatchTranscribe}
+                  style={{ fontWeight: 600, minWidth: 100 }}
+                >
+                  {batchOperationLoading ? <Spinner animation="border" size="sm" /> : 'Transcribe Selected'}
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={batchOperationLoading}
+                  onClick={handleBatchDelete}
+                  style={{ fontWeight: 600, minWidth: 100 }}
+                >
+                  {batchOperationLoading ? <Spinner animation="border" size="sm" /> : 'Delete Selected'}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline-danger"
+              size="sm"
+              disabled={batchOperationLoading || files.length === 0}
+              onClick={handleDeleteAll}
+              style={{ fontWeight: 600, minWidth: 80 }}
+            >
+              {batchOperationLoading ? <Spinner animation="border" size="sm" /> : 'Delete All'}
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {uploadError && <div style={{ color: 'red', marginBottom: 8 }}>{uploadError}</div>}
       {loading ? <Spinner animation="border" /> : (
         showThumbnails ? (
@@ -189,19 +384,42 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
                   maxWidth: 260,
                   textAlign: 'left',
                   position: 'relative',
-                  boxShadow: hoveredId === f.id ? '0 4px 16px #007bff44' : '0 2px 8px #0002',
+                  boxShadow: hoveredId === f.id ? '0 4px 16px #007bff44' : selectedFiles.has(f.id) ? '0 4px 16px #4caf5044' : '0 2px 8px #0002',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'flex-start',
                   gap: 8,
                   cursor: 'pointer',
-                  border: hoveredId === f.id ? '2px solid #1976d2' : '2px solid transparent',
+                  border: hoveredId === f.id ? '2px solid #1976d2' : selectedFiles.has(f.id) ? '2px solid #4caf50' : '2px solid transparent',
                   transition: 'background 0.15s, box-shadow 0.15s, border 0.15s',
                 }}
                 onClick={() => handleFileClick(f)}
                 onMouseEnter={() => setHoveredId(f.id)}
                 onMouseLeave={() => setHoveredId(null)}
               >
+                {/* Selection checkbox */}
+                <div style={{ 
+                  position: 'absolute', 
+                  top: 10, 
+                  right: 10, 
+                  zIndex: 4,
+                  background: 'rgba(35, 39, 43, 0.9)',
+                  borderRadius: 4,
+                  padding: 4
+                }}>
+                  <Form.Check
+                    type="checkbox"
+                    id={`select-${f.id}`}
+                    checked={selectedFiles.has(f.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleFileSelection(f.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ margin: 0 }}
+                  />
+                </div>
+                
                 <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                   {showThumbnails && f.thumbnail ? (
                     <img 
@@ -337,8 +555,8 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
                   borderRadius: 10,
                   padding: '10px 20px',
                   minHeight: 40,
-                  boxShadow: hoveredId === f.id ? '0 4px 16px #007bff44' : '0 2px 8px #0002',
-                  border: hoveredId === f.id ? '2px solid #1976d2' : '2px solid transparent',
+                  boxShadow: hoveredId === f.id ? '0 4px 16px #007bff44' : selectedFiles.has(f.id) ? '0 4px 16px #4caf5044' : '0 2px 8px #0002',
+                  border: hoveredId === f.id ? '2px solid #1976d2' : selectedFiles.has(f.id) ? '2px solid #4caf50' : '2px solid transparent',
                   transition: 'background 0.15s, box-shadow 0.15s, border 0.15s',
                   cursor: 'pointer',
                   gap: 16,
@@ -348,6 +566,19 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
                 onMouseLeave={() => setHoveredId(null)}
                 onClick={() => handleFileClick(f)}
               >
+                {/* Selection checkbox */}
+                <Form.Check
+                  type="checkbox"
+                  id={`select-list-${f.id}`}
+                  checked={selectedFiles.has(f.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    toggleFileSelection(f.id);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ margin: 0 }}
+                />
+                
                 <span style={{ fontSize: 28, marginRight: 16 }}>{getFileIcon(f.filename)}</span>
                 <div style={{
                   flex: 1,
