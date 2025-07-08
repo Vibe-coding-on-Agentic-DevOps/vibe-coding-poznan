@@ -66,11 +66,20 @@ def get_thumbnail(filename):
 
 @app.route('/files', methods=['GET'])
 def list_files():
-    files = Transcription.query.order_by(Transcription.created_at.desc()).all()
+    user_id = request.args.get('userId')
+    db_mode = request.args.get('dbMode', 'global')
+    query = Transcription.query
+    if db_mode == 'private' and user_id:
+        query = query.filter(Transcription.owner_id == user_id)
+    elif db_mode == 'global':
+        query = query.filter(Transcription.owner_id == None)
+    files = query.order_by(Transcription.created_at.desc()).all()
     return jsonify({'files': [f.to_dict() for f in files]})
 
 @app.route('/files', methods=['POST'])
 def add_file():
+    user_id = request.form.get('userId')
+    db_mode = request.form.get('dbMode', 'global')
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     file = request.files['file']
@@ -120,7 +129,8 @@ def add_file():
         file_size=file_size,
         segments=None,
         thumbnail=thumbnail_filename,
-        transcription_status="not_transcribed"
+        transcription_status="not_transcribed",
+        owner_id=user_id if db_mode == 'private' and user_id else None
     )
     db.session.add(new_transcription)
     db.session.commit()
@@ -128,9 +138,15 @@ def add_file():
 
 @app.route('/files/<int:file_id>', methods=['DELETE'])
 def delete_file(file_id):
+    user_id = request.args.get('userId')
+    db_mode = request.args.get('dbMode', 'global')
     t = db.session.get(Transcription, file_id)
     if not t:
         return jsonify({'error': 'File not found'}), 404
+    if db_mode == 'private' and user_id and t.owner_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    if db_mode == 'global' and t.owner_id is not None:
+        return jsonify({'error': 'Unauthorized'}), 403
     # Remove file from uploads directory
     file_path = os.path.join(UPLOAD_FOLDER, t.filename)
     if os.path.exists(file_path):
@@ -142,6 +158,8 @@ def delete_file(file_id):
 @app.route('/files/batch-delete', methods=['POST'])
 def batch_delete_files():
     data = request.get_json()
+    user_id = data.get('userId')
+    db_mode = data.get('dbMode', 'global')
     if not data or 'file_ids' not in data:
         return jsonify({'error': 'No file_ids provided'}), 400
     
@@ -157,6 +175,12 @@ def batch_delete_files():
             t = db.session.get(Transcription, file_id)
             if not t:
                 errors.append(f'File {file_id} not found')
+                continue
+            if db_mode == 'private' and user_id and t.owner_id != user_id:
+                errors.append(f'Unauthorized to delete file {file_id}')
+                continue
+            if db_mode == 'global' and t.owner_id is not None:
+                errors.append(f'Unauthorized to delete file {file_id}')
                 continue
             
             # Remove file from uploads directory
@@ -185,8 +209,15 @@ def batch_delete_files():
 
 @app.route('/files/all', methods=['DELETE'])
 def delete_all_files():
+    user_id = request.args.get('userId')
+    db_mode = request.args.get('dbMode', 'global')
     try:
-        files = Transcription.query.all()
+        query = Transcription.query
+        if db_mode == 'private' and user_id:
+            query = query.filter(Transcription.owner_id == user_id)
+        elif db_mode == 'global':
+            query = query.filter(Transcription.owner_id == None)
+        files = query.all()
         deleted_count = 0
         
         for t in files:
@@ -217,6 +248,8 @@ def delete_all_files():
 @app.route('/files/batch-transcribe', methods=['POST'])
 def batch_transcribe_files():
     data = request.get_json()
+    user_id = data.get('userId')
+    db_mode = data.get('dbMode', 'global')
     if not data or 'file_ids' not in data:
         return jsonify({'error': 'No file_ids provided'}), 400
     
@@ -233,8 +266,11 @@ def batch_transcribe_files():
             if not t:
                 errors.append(f'File {file_id} not found')
                 continue
-            if t.transcription_status == 'transcribed':
-                errors.append(f'File {file_id} already transcribed')
+            if db_mode == 'private' and user_id and t.owner_id != user_id:
+                errors.append(f'Unauthorized to transcribe file {file_id}')
+                continue
+            if db_mode == 'global' and t.owner_id is not None:
+                errors.append(f'Unauthorized to transcribe file {file_id}')
                 continue
             file_path = os.path.join(UPLOAD_FOLDER, t.filename)
             if not os.path.exists(file_path):

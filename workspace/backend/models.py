@@ -14,6 +14,7 @@ class Transcription(db.Model):
     segments = db.Column(db.Text, nullable=True)  # JSON string storing word-level timing segments
     thumbnail = db.Column(db.String(256), nullable=True)
     transcription_status = db.Column(db.String(32), nullable=False, default='not_transcribed')
+    owner_id = db.Column(db.String(128), nullable=True, index=True)  # Azure AD user id or None for global
 
     def to_dict(self):
         segments_data = []
@@ -32,5 +33,6 @@ class Transcription(db.Model):
             'file_size': self.file_size,
             'segments': segments_data,
             'thumbnail': self.thumbnail,
-            'transcription_status': self.transcription_status
+            'transcription_status': self.transcription_status,
+            'owner_id': self.owner_id
         }
