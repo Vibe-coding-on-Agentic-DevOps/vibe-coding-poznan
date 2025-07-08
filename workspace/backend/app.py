@@ -23,8 +23,8 @@ AZURE_OPENAI_DEPLOYMENT = get_env_var('AZURE_OPENAI_DEPLOYMENT')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///transcriptions.db'
-# Increase max upload size to 500MB (adjust as needed)
-app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
+# Remove or comment out the max upload size limit
+# app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 db.init_app(app)
 CORS(app)
 
@@ -77,6 +77,11 @@ def add_file():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     filename = secure_filename(file.filename)
+    # File type validation (allow only video/audio)
+    allowed_extensions = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.mpeg', '.mpg', '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.mpga', '.oga'}
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in allowed_extensions:
+        return jsonify({'error': f'File type {ext} not supported. Allowed: {', '.join(allowed_extensions)}'}), 400
     file_content = file.read()
     file_hash = hashlib.sha256(file_content).hexdigest()
     file_size = len(file_content)

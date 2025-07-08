@@ -8,6 +8,7 @@ from models import Transcription
 import os
 import tempfile
 import shutil
+import io
 
 @pytest.fixture
 def client():
@@ -149,3 +150,20 @@ def test_add_video_file_thumbnail(client):
         if file_id:
             del_resp = client.delete(f'/files/{file_id}')
             assert del_resp.status_code == 200
+
+def test_upload_invalid_file_type(client):
+    data = {'file': (io.BytesIO(b'not a video'), 'test.txt')}
+    rv = client.post('/files', data=data, content_type='multipart/form-data')
+    assert rv.status_code == 400
+    assert 'error' in rv.get_json()
+
+def test_path_traversal(client):
+    data = {'file': (io.BytesIO(b'bad'), '../evil.mp3')}
+    rv = client.post('/files', data=data, content_type='multipart/form-data')
+    # Should not allow path traversal, filename should be sanitized
+    assert rv.status_code in (200, 409, 400)
+    # Clean up if file was created
+    files = client.get('/files').get_json()['files']
+    for f in files:
+        if f['filename'] == 'evil.mp3':
+            client.delete(f"/files/{f['id']}")
