@@ -92,6 +92,7 @@ def test_add_and_download_file(client):
     assert del_resp.status_code == 200
 
 # Test /files/<id>/transcribe after upload
+@pytest.mark.skipif(os.environ.get('CI') == 'true', reason='Skip Azure-dependent test in CI')
 def test_transcribe_by_id_success(client):
     data = {'file': (tempfile.NamedTemporaryFile(suffix='.mp3'), 'test_transcribe.mp3')}
     rv = client.post('/files', data=data, content_type='multipart/form-data')
@@ -113,12 +114,14 @@ def test_transcribe_by_id_success(client):
     assert del_resp.status_code == 200
 
 # Test /ask with valid data (should return 200 or error if Azure config missing)
+@pytest.mark.skipif(os.environ.get('CI') == 'true', reason='Skip Azure-dependent test in CI')
 def test_ask_valid(client):
     data = {'transcript': 'Hello world', 'question': 'What is this?'}
     rv = client.post('/ask', json=data)
     assert rv.status_code in (200, 400, 500)
 
 # Test /ask-database with valid data
+@pytest.mark.skipif(os.environ.get('CI') == 'true', reason='Skip Azure-dependent test in CI')
 def test_ask_database_valid(client):
     data = {'question': 'What is in the database?'}
     rv = client.post('/ask-database', json=data)
