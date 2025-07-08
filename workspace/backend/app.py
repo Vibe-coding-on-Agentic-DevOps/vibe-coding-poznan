@@ -233,22 +233,90 @@ def batch_transcribe_files():
             if not t:
                 errors.append(f'File {file_id} not found')
                 continue
-            
             if t.transcription_status == 'transcribed':
                 errors.append(f'File {file_id} already transcribed')
                 continue
-            
-            # For now, just mark as transcribed without actual transcription
-            # In real implementation, this would call the transcription service
-            t.transcription_status = 'transcribed'
-            t.transcription = f'Batch transcription for {t.filename}'  # Placeholder
-            success_count += 1
-            
+            file_path = os.path.join(UPLOAD_FOLDER, t.filename)
+            if not os.path.exists(file_path):
+                errors.append(f'File {file_id} not found on server')
+                continue
+            ext = os.path.splitext(t.filename)[1].lower()
+            audio_extensions = {'.flac', '.m4a', '.mp3', '.mp4', '.mpeg', '.mpga', '.oga', '.ogg', '.wav', '.webm'}
+            audio_path = file_path
+            temp_audio_created = False
+            if ext not in audio_extensions:
+                audio_path = file_path + '.mp3'
+                temp_audio_created = True
+                ffmpeg_cmd = [
+                    'ffmpeg', '-y', '-i', file_path, '-vn', '-acodec', 'mp3', audio_path
+                ]
+                result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if result.returncode != 0:
+                    errors.append(f'Failed to extract audio from video for file {file_id}')
+                    continue
+            try:
+                with open(audio_path, 'rb') as audio_file:
+                    headers = {'api-key': AZURE_OPENAI_KEY}
+                    files = {'file': (os.path.basename(audio_path), audio_file, 'audio/mpeg')}
+                    response = requests.post(
+                        AZURE_OPENAI_ENDPOINT,
+                        headers=headers,
+                        files=files,
+                        data={'response_format': 'verbose_json'}
+                    )
+                    if response.ok:
+                        data = response.json()
+                        transcription = data.get('text', '')
+                        segments = data.get('segments', [])
+                        word_segments = []
+                        has_words = False
+                        for seg in segments:
+                            if 'words' in seg and seg['words']:
+                                has_words = True
+                                for word in seg['words']:
+                                    word_segments.append({
+                                        'text': word['word'],
+                                        'start': word['start'],
+                                        'end': word['end']
+                                    })
+                        if not has_words:
+                            chunk_size = 3
+                            for seg in segments:
+                                words = seg.get('text', '').split()
+                                start = seg.get('start', 0)
+                                end = seg.get('end', 0)
+                                if not words:
+                                    continue
+                                duration = (end - start) / max(len(words), 1) if end > start else 0
+                                for i in range(0, len(words), chunk_size):
+                                    chunk_words = words[i:i+chunk_size]
+                                    chunk_start = start + (i * duration)
+                                    chunk_end = chunk_start + (len(chunk_words) * duration)
+                                    word_segments.append({
+                                        'text': ' '.join(chunk_words),
+                                        'start': chunk_start,
+                                        'end': chunk_end
+                                    })
+                        if not word_segments:
+                            word_segments = [{
+                                'text': transcription,
+                                'start': 0,
+                                'end': 0
+                            }]
+                        t.transcription = transcription
+                        t.segments = json.dumps(word_segments)
+                        t.transcription_status = 'transcribed'
+                        success_count += 1
+                    else:
+                        errors.append(f'Failed to transcribe file {file_id}: {response.text}')
+            except Exception as e:
+                errors.append(f'Error transcribing file {file_id}: {str(e)}')
+            finally:
+                if temp_audio_created and os.path.exists(audio_path):
+                    os.remove(audio_path)
         except Exception as e:
-            errors.append(f'Error transcribing file {file_id}: {str(e)}')
-    
+            errors.append(f'Error processing file {file_id}: {str(e)}')
     db.session.commit()
-    
     return jsonify({
         'success': True,
         'transcribed_count': success_count,
