@@ -738,8 +738,8 @@ function App() {
                 }}>Answer:</span>
               </div>
               <div className="answer-box mt-0" style={{
-                maxHeight: 120, // similar to transcript-box
-                minHeight: 32, // a bit more space for single-line answers
+                maxHeight: answer ? 220 : 120, // increased maxHeight when answer is present
+                minHeight: answer ? 64 : 32,   // increased minHeight when answer is present
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 whiteSpace: 'pre-wrap',
