@@ -7,6 +7,7 @@ from app import app, db
 from models import Transcription
 import os
 import tempfile
+import shutil
 
 @pytest.fixture
 def client():
@@ -128,6 +129,7 @@ def test_ask_database_valid(client):
     assert rv.status_code in (200, 400, 500)
 
 # Test thumbnail generation for video uploads
+@pytest.mark.skipif(shutil.which('ffmpeg') is None, reason='ffmpeg not available')
 def test_add_video_file_thumbnail(client):
     # Create a fake video file (just a text file with .mp4 extension)
     with tempfile.NamedTemporaryFile(suffix='.mp4') as tmp:
