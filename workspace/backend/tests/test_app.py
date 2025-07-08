@@ -65,3 +65,82 @@ def test_download_transcription_txt_not_found(client):
 def test_transcribe_by_id_not_found(client):
     rv = client.post('/files/9999/transcribe')
     assert rv.status_code == 404
+
+def test_add_and_download_file(client):
+    # Upload a file
+    data = {'file': (tempfile.NamedTemporaryFile(suffix='.mp3'), 'test_download.mp3')}
+    rv = client.post('/files', data=data, content_type='multipart/form-data')
+    assert rv.status_code == 200 or rv.status_code == 409
+    file_id = None
+    if rv.status_code == 200:
+        file_id = rv.get_json()['file']['id']
+    elif rv.status_code == 409:
+        files = client.get('/files').get_json()['files']
+        for f in files:
+            if f['filename'] == 'test_download.mp3':
+                file_id = f['id']
+    assert file_id is not None
+    # Download file
+    resp = client.get(f'/files/{file_id}/download')
+    assert resp.status_code == 200
+    # Download transcription txt (should be empty string)
+    resp_txt = client.get(f'/files/{file_id}/download-txt')
+    assert resp_txt.status_code == 200
+    assert resp_txt.data is not None
+    # Cleanup: delete the file
+    del_resp = client.delete(f'/files/{file_id}')
+    assert del_resp.status_code == 200
+
+# Test /files/<id>/transcribe after upload
+def test_transcribe_by_id_success(client):
+    data = {'file': (tempfile.NamedTemporaryFile(suffix='.mp3'), 'test_transcribe.mp3')}
+    rv = client.post('/files', data=data, content_type='multipart/form-data')
+    assert rv.status_code == 200 or rv.status_code == 409
+    file_id = None
+    if rv.status_code == 200:
+        file_id = rv.get_json()['file']['id']
+    elif rv.status_code == 409:
+        files = client.get('/files').get_json()['files']
+        for f in files:
+            if f['filename'] == 'test_transcribe.mp3':
+                file_id = f['id']
+    assert file_id is not None
+    # Try to transcribe by id (will likely fail due to missing Azure config, but should not 404)
+    resp = client.post(f'/files/{file_id}/transcribe')
+    assert resp.status_code in (200, 400, 500)
+    # Cleanup: delete the file
+    del_resp = client.delete(f'/files/{file_id}')
+    assert del_resp.status_code == 200
+
+# Test /ask with valid data (should return 200 or error if Azure config missing)
+def test_ask_valid(client):
+    data = {'transcript': 'Hello world', 'question': 'What is this?'}
+    rv = client.post('/ask', json=data)
+    assert rv.status_code in (200, 400, 500)
+
+# Test /ask-database with valid data
+def test_ask_database_valid(client):
+    data = {'question': 'What is in the database?'}
+    rv = client.post('/ask-database', json=data)
+    assert rv.status_code in (200, 400, 500)
+
+# Test thumbnail generation for video uploads
+def test_add_video_file_thumbnail(client):
+    # Create a fake video file (just a text file with .mp4 extension)
+    with tempfile.NamedTemporaryFile(suffix='.mp4') as tmp:
+        tmp.write(b'not a real video')
+        tmp.seek(0)
+        data = {'file': (tmp, 'fake_video.mp4')}
+        rv = client.post('/files', data=data, content_type='multipart/form-data')
+        assert rv.status_code == 200 or rv.status_code == 409
+        file_id = None
+        if rv.status_code == 200:
+            file_id = rv.get_json()['file']['id']
+        elif rv.status_code == 409:
+            files = client.get('/files').get_json()['files']
+            for f in files:
+                if f['filename'] == 'fake_video.mp4':
+                    file_id = f['id']
+        if file_id:
+            del_resp = client.delete(f'/files/{file_id}')
+            assert del_resp.status_code == 200

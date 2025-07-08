@@ -381,7 +381,7 @@ def transcribe():
 
 @app.route('/files/<int:file_id>/transcribe', methods=['POST'])
 def transcribe_by_id(file_id):
-    t = Transcription.query.get(file_id)
+    t = db.session.get(Transcription, file_id)
     if not t:
         return jsonify({'error': 'File not found'}), 404
     if t.transcription_status == 'transcribed':
