@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 import hashlib
 import json
 import subprocess
+from sqlalchemy import text
 
 # Load .env at the very top
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
@@ -82,7 +83,7 @@ def add_file():
     # Check for duplicate by filename
     existing = Transcription.query.filter_by(filename=filename).first()
     if existing and existing.file_hash == file_hash and existing.file_size == file_size:
-        return jsonify({'error': 'File already exists.'), 409
+        return jsonify({'error': 'File already exists.'}), 409
     elif existing:
         base, ext = os.path.splitext(filename)
         i = 1
@@ -582,11 +583,10 @@ def health_check():
     Returns 200 OK if the app and DB are reachable.
     """
     try:
-        # Simple DB check (optional, but recommended for Azure health probes)
-        db.session.execute('SELECT 1')
+        # Use SQLAlchemy text() for raw SQL
+        db.session.execute(text('SELECT 1'))
         return jsonify({'status': 'ok'}), 200
     except Exception as e:
-        # Log error for diagnostics
         print(f"[HEALTH CHECK ERROR] {e}")
         return jsonify({'status': 'error', 'details': str(e)}), 500
 

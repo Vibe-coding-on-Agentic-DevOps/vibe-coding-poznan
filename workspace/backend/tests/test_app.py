@@ -45,3 +45,23 @@ def test_transcribe_no_file(client):
 def test_delete_file_not_found(client):
     rv = client.delete('/files/9999')
     assert rv.status_code == 404 or rv.status_code == 200
+
+def test_health_check(client):
+    rv = client.get('/health')
+    assert rv.status_code == 200
+    assert rv.get_json()['status'] == 'ok'
+
+# Test downloading a file (should return 404 if not found, 200 if found)
+def test_download_file_not_found(client):
+    rv = client.get('/files/9999/download')
+    assert rv.status_code == 404
+
+# Test downloading transcription txt (should return 404 if not found, 200 if found)
+def test_download_transcription_txt_not_found(client):
+    rv = client.get('/files/9999/download-txt')
+    assert rv.status_code == 404
+
+# Test transcribe by id (should return 404 if not found)
+def test_transcribe_by_id_not_found(client):
+    rv = client.post('/files/9999/transcribe')
+    assert rv.status_code == 404
