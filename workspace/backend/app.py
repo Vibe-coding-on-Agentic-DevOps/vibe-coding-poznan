@@ -82,7 +82,7 @@ def add_file():
     # Check for duplicate by filename
     existing = Transcription.query.filter_by(filename=filename).first()
     if existing and existing.file_hash == file_hash and existing.file_size == file_size:
-        return jsonify({'error': 'File already exists.'}), 409
+        return jsonify({'error': 'File already exists.'), 409
     elif existing:
         base, ext = os.path.splitext(filename)
         i = 1
@@ -574,6 +574,21 @@ def serve_react(path):
         return send_from_directory(static_folder, path)
     else:
         return send_from_directory(static_folder, 'index.html')
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for Azure App Service, Container Apps, or Kubernetes.
+    Returns 200 OK if the app and DB are reachable.
+    """
+    try:
+        # Simple DB check (optional, but recommended for Azure health probes)
+        db.session.execute('SELECT 1')
+        return jsonify({'status': 'ok'}), 200
+    except Exception as e:
+        # Log error for diagnostics
+        print(f"[HEALTH CHECK ERROR] {e}")
+        return jsonify({'status': 'error', 'details': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
