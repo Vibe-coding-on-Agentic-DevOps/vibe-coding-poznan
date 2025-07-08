@@ -333,7 +333,6 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
               </span>
             )}
           </div>
-          
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {selectedFiles.size > 0 && (
               <>
@@ -357,15 +356,6 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
                 </Button>
               </>
             )}
-            <Button
-              variant="outline-danger"
-              size="sm"
-              disabled={batchOperationLoading || files.length === 0}
-              onClick={handleDeleteAll}
-              style={{ fontWeight: 600, minWidth: 80 }}
-            >
-              {batchOperationLoading ? <Spinner animation="border" size="sm" /> : 'Delete All'}
-            </Button>
           </div>
         </div>
       )}
@@ -629,18 +619,21 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 18,
-                    height: 28,
+                    fontSize: 20,
+                    height: 32,
                     width: 32,
                     marginLeft: 8,
                     transition: 'background 0.15s, box-shadow 0.15s, border 0.15s',
+                    padding: 0,
                   }}
                   onClick={e => { e.stopPropagation(); handleDelete(f.id); }}
                   onMouseEnter={() => setHoveredDeleteId(f.id)}
                   onMouseLeave={() => setHoveredDeleteId(null)}
                   title="Delete file"
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>×</span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', margin: 0, lineHeight: 1, position: 'relative', top: '-2.3px' }}>
+                    ×
+                  </span>
                 </Button>
               </div>
             ))}
