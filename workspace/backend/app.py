@@ -81,7 +81,8 @@ def add_file():
     allowed_extensions = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv', '.mpeg', '.mpg', '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.mpga', '.oga'}
     ext = os.path.splitext(filename)[1].lower()
     if ext not in allowed_extensions:
-        return jsonify({'error': f'File type {ext} not supported. Allowed: {', '.join(allowed_extensions)}'}), 400
+        allowed_list = ', '.join(allowed_extensions)
+        return jsonify({'error': f'File type {ext} not supported. Allowed: {allowed_list}'}), 400
     file_content = file.read()
     file_hash = hashlib.sha256(file_content).hexdigest()
     file_size = len(file_content)
