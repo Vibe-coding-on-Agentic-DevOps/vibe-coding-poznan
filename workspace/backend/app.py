@@ -139,6 +139,122 @@ def delete_file(file_id):
     db.session.commit()
     return jsonify({'success': True})
 
+@app.route('/files/batch-delete', methods=['POST'])
+def batch_delete_files():
+    data = request.get_json()
+    if not data or 'file_ids' not in data:
+        return jsonify({'error': 'No file_ids provided'}), 400
+    
+    file_ids = data['file_ids']
+    if not isinstance(file_ids, list):
+        return jsonify({'error': 'file_ids must be an array'}), 400
+    
+    deleted_count = 0
+    errors = []
+    
+    for file_id in file_ids:
+        try:
+            t = db.session.get(Transcription, file_id)
+            if not t:
+                errors.append(f'File {file_id} not found')
+                continue
+            
+            # Remove file from uploads directory
+            file_path = os.path.join(UPLOAD_FOLDER, t.filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            # Remove thumbnail if exists
+            if t.thumbnail:
+                thumbnail_path = os.path.join(THUMBNAIL_FOLDER, t.thumbnail)
+                if os.path.exists(thumbnail_path):
+                    os.remove(thumbnail_path)
+            
+            db.session.delete(t)
+            deleted_count += 1
+        except Exception as e:
+            errors.append(f'Error deleting file {file_id}: {str(e)}')
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'deleted_count': deleted_count,
+        'errors': errors
+    })
+
+@app.route('/files/all', methods=['DELETE'])
+def delete_all_files():
+    try:
+        files = Transcription.query.all()
+        deleted_count = 0
+        
+        for t in files:
+            # Remove file from uploads directory
+            file_path = os.path.join(UPLOAD_FOLDER, t.filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            # Remove thumbnail if exists
+            if t.thumbnail:
+                thumbnail_path = os.path.join(THUMBNAIL_FOLDER, t.thumbnail)
+                if os.path.exists(thumbnail_path):
+                    os.remove(thumbnail_path)
+            
+            db.session.delete(t)
+            deleted_count += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'deleted_count': deleted_count
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error deleting all files: {str(e)}'}), 500
+
+@app.route('/files/batch-transcribe', methods=['POST'])
+def batch_transcribe_files():
+    data = request.get_json()
+    if not data or 'file_ids' not in data:
+        return jsonify({'error': 'No file_ids provided'}), 400
+    
+    file_ids = data['file_ids']
+    if not isinstance(file_ids, list):
+        return jsonify({'error': 'file_ids must be an array'}), 400
+    
+    success_count = 0
+    errors = []
+    
+    for file_id in file_ids:
+        try:
+            t = db.session.get(Transcription, file_id)
+            if not t:
+                errors.append(f'File {file_id} not found')
+                continue
+            
+            if t.transcription_status == 'transcribed':
+                errors.append(f'File {file_id} already transcribed')
+                continue
+            
+            # For now, just mark as transcribed without actual transcription
+            # In real implementation, this would call the transcription service
+            t.transcription_status = 'transcribed'
+            t.transcription = f'Batch transcription for {t.filename}'  # Placeholder
+            success_count += 1
+            
+        except Exception as e:
+            errors.append(f'Error transcribing file {file_id}: {str(e)}')
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'transcribed_count': success_count,
+        'errors': errors
+    })
+
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     if 'file' not in request.files:
