@@ -29,6 +29,7 @@ Copilot’s ability to handle implementation details significantly reduced the t
 
 👀 Final Observations: <br>
 Copilot’s ability to connect the dots and understand context with such precision was genuinely impressive - it really felt like working with an experienced colleague. While it had its flaws, such as introducing more new bugs while fixing others if the problem was too complex or struggling with paths, the better our prompts and understanding of the problem, the better the agent's implementation. Although I wouldn’t fully trust its output without supervision, the time and mental effort it saved us during implementation were immense.
+
 ---
 
 ## 📚 Table of Contents
