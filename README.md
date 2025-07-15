@@ -7,27 +7,35 @@ A modern, user-friendly web app for instantly transcribing your meetings, lectur
 Authors: Miłosz Skibiński [miloSK1] & Aleksy Bukowski [AleksyBukowski]
 
 🔍 Prompting:
+
 Having a specific solution in mind and then prompting Copilot to implement it was probably the most efficient method, resulting in very few errors. On the other hand, leaving the creative part to Copilot and attempting to implement too many large, comprehensive solutions at once led to more problems. A better approach was to ask Copilot about possible solutions and then break them down into smaller parts.
 
 ✅ Validation & Feedback:
+
 The more detailed the prompt, the less feedback was needed. However, solving small parts of a problem and then guiding Copilot after each step proved to be a very effective way of working. Validation was mostly done by checking whether the implemented solutions worked in action, asking Copilot to explain the logic behind them, and performing tests.
 
 🔁 Rework & Iteration:
+
 Tasks further removed from pure coding required the most rework - such as Azure integration, getting the Dockerfile to work, and managing communication between different architectural components. Providing thorough context always helped: including all variables, explaining what had already been done and achieved. The more precise the terminology, the better Copilot performed.
 
 🧪 Code Quality:
+
 The code quality was generally good, although syntax errors occasionally occurred. As the project grew, integrating everything became more challenging. Still, with sufficient context, Copilot was able to resolve most issues efficiently.
 
 🤖 Agent Behavior & Autonomy:
+
 Copilot's behavior was quite predictable when given detailed instructions and allowed to handle implementation. However, when stuck on a complex problem, it sometimes looped - repeating the same commands - or chose unnecessarily complicated solutions. Once the overall direction was clarified and it was guided toward a simpler path, it usually handled the problem well.
 
 🧭 Overriding the Agent:
+
 Due to the time it took for Copilot to grasp the full project context, making very small changes - like adjusting some little frontend padding - was often easier to do manually. It also struggled with file paths, frequently referencing files that were actually located in different folders.
 
 🧠 Cognitive Load & Flow:
+
 Copilot’s ability to handle implementation details significantly reduced the time required to complete tasks. It also lowered the cognitive load needed for the less necessary details, allowing us to focus more on the creative aspects and rapidly move from idea to finished project.
 
 👀 Final Observations:
+
 Copilot’s ability to connect the dots and understand context with such precision was genuinely impressive - it really felt like working with an experienced colleague. While it had its flaws, such as introducing more new bugs while fixing others if the problem was too complex or struggling with paths, the better our prompts and understanding of the problem, the better the agent's implementation. Although I wouldn’t fully trust its output without supervision, the time and mental effort it saved us during implementation were immense.
 ---
 
