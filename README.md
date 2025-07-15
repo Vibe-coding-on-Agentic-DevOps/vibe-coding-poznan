@@ -6,7 +6,7 @@ A modern, user-friendly web app for instantly transcribing your meetings, lectur
 
 Authors: Miłosz Skibiński [miloSK1] & Aleksy Bukowski [AleksyBukowski]
 
-🔍 Prompting:
+🔍 Prompting: <br>
 Having a specific solution in mind and then prompting Copilot to implement it was probably the most efficient method, resulting in very few errors. On the other hand, leaving the creative part to Copilot and attempting to implement too many large, comprehensive solutions at once led to more problems. A better approach was to ask Copilot about possible solutions and then break them down into smaller parts.
 
 ✅ Validation & Feedback:
