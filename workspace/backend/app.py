@@ -407,9 +407,16 @@ def transcribe():
     file_content = file.read()
     file_hash = hashlib.sha256(file_content).hexdigest()
     file_size = len(file_content)
-    # Check for duplicate by filename
-    existing = Transcription.query.filter_by(filename=filename).first()
-    if existing and existing.file_hash == file_hash and existing.file_size == file_size and existing.transcription:
+    # --- DB Mode logic ---
+    db_mode = request.form.get('dbMode', 'private')
+    user_id = request.form.get('userId')
+    if db_mode == 'private' and user_id:
+        owner_id = user_id
+    else:
+        owner_id = None
+    # Check for duplicate by filename, file hash, file size, and owner_id
+    existing = Transcription.query.filter_by(filename=filename, file_hash=file_hash, file_size=file_size, owner_id=owner_id).first()
+    if existing and existing.transcription:
         # Return the existing transcription and saved segments
         segments_data = []
         if existing.segments:
@@ -433,7 +440,7 @@ def transcribe():
                 'end': 0
             }]
         return jsonify({'transcription': existing.transcription, 'segments': segments_data, 'filename': existing.filename}), 200
-    elif existing and existing.file_hash == file_hash and existing.file_size == file_size and not existing.transcription:
+    elif existing and not existing.transcription:
         # If file exists but is not transcribed, run transcription and update the record
         # Save uploaded file (overwrite)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -521,7 +528,7 @@ def transcribe():
             if temp_audio_created and os.path.exists(audio_path):
                 os.remove(audio_path)
         return jsonify({'transcription': existing.transcription, 'segments': json.loads(existing.segments), 'filename': existing.filename}), 200
-    elif existing and existing.file_hash == file_hash and existing.file_size == file_size:
+    elif existing:
         # Return empty transcription (should not happen, but for safety)
         return jsonify({'transcription': existing.transcription, 'segments': []}), 200
     elif existing:
@@ -615,7 +622,7 @@ def transcribe():
                         'start': 0,
                         'end': 0
                     }]
-                # Save transcription to database
+                # Save transcription to database with correct owner_id
                 new_transcription = Transcription(
                     filename=filename,
                     transcription=transcription,
@@ -623,7 +630,8 @@ def transcribe():
                     file_size=file_size,
                     segments=json.dumps(word_segments),
                     thumbnail=thumbnail_filename,
-                    transcription_status="transcribed"
+                    transcription_status="transcribed",
+                    owner_id=owner_id
                 )
                 db.session.add(new_transcription)
                 db.session.commit()
