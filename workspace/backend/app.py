@@ -409,7 +409,8 @@ def transcribe():
     file_size = len(file_content)
     # --- DB Mode logic ---
     db_mode = request.form.get('dbMode', 'private')
-    user_id = request.form.get('userId')
+    # Prefer Azure header for user ID if present
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID') or request.form.get('userId')
     if db_mode == 'private' and user_id:
         owner_id = user_id
     else:
