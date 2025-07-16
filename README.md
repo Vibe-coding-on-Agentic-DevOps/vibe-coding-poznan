@@ -79,6 +79,9 @@ Below are some screenshots showcasing the Meeting Assistant in action:
 - **Global Search:** Find keywords, topics, or speakers across all your meetings.
 - **Seamless UX:** Switch between tabs, preview videos, and manage files with ease.
 - **Robust file management:** Prevent duplicates, auto-transcribe on upload, and keep your workspace organized.
+- **Azure App Service authentication** using Microsoft accounts.
+- **Azure front door** and **health checks**.
+- Automatic HTTPS redirection.
 
 ## 🛠️ Tech Stack
 - **Frontend:** React, React Bootstrap
