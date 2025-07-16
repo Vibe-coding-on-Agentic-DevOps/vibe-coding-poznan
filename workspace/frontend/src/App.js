@@ -73,6 +73,8 @@ function App() {
     if (fileInputRef.current) fileInputRef.current.blur();
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('dbMode', dbMode);
+    formData.append('userId', userId);
     try {
       const response = await fetch('/transcribe', {
         method: 'POST',
