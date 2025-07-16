@@ -4,9 +4,10 @@ Add transcription_status column to Transcription table
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
 revision = '20230701_add_transcription_status_column'
-down_revision = None  # Set this to the previous migration's revision if any
+down_revision = None
 branch_labels = None
 depends_on = None
 

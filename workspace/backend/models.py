@@ -6,7 +6,10 @@ db = SQLAlchemy()
 
 class Transcription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(256), nullable=False, unique=True)
+    filename = db.Column(db.String(256), nullable=False)
+    __table_args__ = (
+        db.UniqueConstraint('filename', 'owner_id', name='uix_filename_owner'),
+    )
     transcription = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     file_hash = db.Column(db.String(64), nullable=True)  # SHA256 hash for duplicate detection

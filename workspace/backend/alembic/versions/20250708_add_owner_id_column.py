@@ -1,3 +1,8 @@
+# revision identifiers, used by Alembic.
+revision = '20250708_add_owner_id_column'
+down_revision = '20230701_add_transcription_status_column'
+branch_labels = None
+depends_on = None
 """
 Add owner_id column to Transcription table for user-specific data
 """
