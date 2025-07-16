@@ -8,7 +8,7 @@ function getFileIcon(filename) {
   return "📄";
 }
 
-export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
+export default function DatabaseGallery({ onTranscribeFile, onFileDeleted, userId, dbMode }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,7 +30,7 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [userId, dbMode]);
 
   // Save thumbnail setting to localStorage whenever it changes
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/files");
+      const res = await fetch(`/files?userId=${encodeURIComponent(userId)}&dbMode=${encodeURIComponent(dbMode)}`);
       const data = await res.json();
       setFiles(data.files || []);
     } catch {
@@ -52,7 +52,7 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
 
   async function handleDelete(id) {
     if (!window.confirm("Delete this file and its transcription?")) return;
-    await fetch(`/files/${id}`, { method: "DELETE" });
+    await fetch(`/files/${id}?userId=${encodeURIComponent(userId)}&dbMode=${encodeURIComponent(dbMode)}`, { method: "DELETE" });
     fetchFiles();
     if (onFileDeleted) onFileDeleted(id);
   }
@@ -69,6 +69,8 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
     setUploadError("");
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('userId', userId);
+    formData.append('dbMode', dbMode);
     try {
       const res = await fetch('/files', { method: 'POST', body: formData });
       const data = await res.json();
@@ -85,7 +87,11 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
     if (!fileObj || !fileObj.id) return;
     setTranscribingId(fileObj.id);
     try {
-      const res = await fetch(`/files/${fileObj.id}/transcribe`, { method: 'POST' });
+      const res = await fetch(`/files/${fileObj.id}/transcribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, dbMode })
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Transcription failed');
       fetchFiles();
@@ -134,7 +140,7 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
       const res = await fetch('/files/batch-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_ids: fileIds })
+        body: JSON.stringify({ file_ids: fileIds, userId, dbMode })
       });
       
       const data = await res.json();
@@ -179,7 +185,7 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
       const res = await fetch('/files/batch-transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_ids: untranscribedFiles })
+        body: JSON.stringify({ file_ids: untranscribedFiles, userId, dbMode })
       });
       
       const data = await res.json();
@@ -206,7 +212,7 @@ export default function DatabaseGallery({ onTranscribeFile, onFileDeleted }) {
     setError("");
     
     try {
-      const res = await fetch('/files/all', { method: 'DELETE' });
+      const res = await fetch(`/files/all?userId=${encodeURIComponent(userId)}&dbMode=${encodeURIComponent(dbMode)}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Delete all failed');
       

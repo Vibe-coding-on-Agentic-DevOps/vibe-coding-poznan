@@ -66,11 +66,35 @@ def get_thumbnail(filename):
 
 @app.route('/files', methods=['GET'])
 def list_files():
-    files = Transcription.query.order_by(Transcription.created_at.desc()).all()
-    return jsonify({'files': [f.to_dict() for f in files]})
+    # Try to get user info from Azure App Service authentication headers
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID')
+    user_email = request.headers.get('X-MS-CLIENT-PRINCIPAL-NAME')
+    # Fallback to query param for backward compatibility
+    if not user_id:
+        user_id = request.args.get('userId')
+    db_mode = request.args.get('dbMode', 'global')
+    # If db_mode is not provided, but user_id is present, default to private
+    if not db_mode and user_id:
+        db_mode = 'private'
+    query = Transcription.query
+    if db_mode == 'private' and user_id:
+        query = query.filter(Transcription.owner_id == user_id)
+    elif db_mode == 'global':
+        query = query.filter(Transcription.owner_id == None)
+    files = query.order_by(Transcription.created_at.desc()).all()
+    return jsonify({'files': [f.to_dict() for f in files], 'user': user_email or user_id})
 
 @app.route('/files', methods=['POST'])
 def add_file():
+    # Try to get user info from Azure App Service authentication headers
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID')
+    user_email = request.headers.get('X-MS-CLIENT-PRINCIPAL-NAME')
+    # Fallback to form param for backward compatibility
+    if not user_id:
+        user_id = request.form.get('userId')
+    db_mode = request.form.get('dbMode', 'global')
+    if not db_mode and user_id:
+        db_mode = 'private'
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     file = request.files['file']
@@ -86,16 +110,22 @@ def add_file():
     file_content = file.read()
     file_hash = hashlib.sha256(file_content).hexdigest()
     file_size = len(file_content)
-    # Check for duplicate by filename
-    existing = Transcription.query.filter_by(filename=filename).first()
-    if existing and existing.file_hash == file_hash and existing.file_size == file_size:
-        return jsonify({'error': 'File already exists.'}), 409
-    elif existing:
+    # Check for duplicate only within the selected database (private/public+user)
+    if db_mode == 'private' and user_id:
+        owner_id = user_id
+    else:
+        owner_id = None
+    existing = Transcription.query.filter_by(filename=filename, file_hash=file_hash, file_size=file_size, owner_id=owner_id).first()
+    if existing:
+        return jsonify({'error': 'File already exists in this database.'}), 409
+    # If filename exists in this db, but is not a true duplicate, rename
+    existing_name = Transcription.query.filter_by(filename=filename, owner_id=owner_id).first()
+    if existing_name:
         base, ext = os.path.splitext(filename)
         i = 1
         while True:
             new_filename = f"{base}_{i}{ext}"
-            if not Transcription.query.filter_by(filename=new_filename).first():
+            if not Transcription.query.filter_by(filename=new_filename, owner_id=owner_id).first():
                 filename = new_filename
                 break
             i += 1
@@ -120,7 +150,8 @@ def add_file():
         file_size=file_size,
         segments=None,
         thumbnail=thumbnail_filename,
-        transcription_status="not_transcribed"
+        transcription_status="not_transcribed",
+        owner_id=user_id if db_mode == 'private' and user_id else None
     )
     db.session.add(new_transcription)
     db.session.commit()
@@ -128,9 +159,19 @@ def add_file():
 
 @app.route('/files/<int:file_id>', methods=['DELETE'])
 def delete_file(file_id):
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID')
+    if not user_id:
+        user_id = request.args.get('userId')
+    db_mode = request.args.get('dbMode', 'global')
+    if not db_mode and user_id:
+        db_mode = 'private'
     t = db.session.get(Transcription, file_id)
     if not t:
         return jsonify({'error': 'File not found'}), 404
+    if db_mode == 'private' and user_id and t.owner_id != user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    if db_mode == 'global' and t.owner_id is not None:
+        return jsonify({'error': 'Unauthorized'}), 403
     # Remove file from uploads directory
     file_path = os.path.join(UPLOAD_FOLDER, t.filename)
     if os.path.exists(file_path):
@@ -142,6 +183,12 @@ def delete_file(file_id):
 @app.route('/files/batch-delete', methods=['POST'])
 def batch_delete_files():
     data = request.get_json()
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID')
+    if not user_id:
+        user_id = data.get('userId')
+    db_mode = data.get('dbMode', 'global')
+    if not db_mode and user_id:
+        db_mode = 'private'
     if not data or 'file_ids' not in data:
         return jsonify({'error': 'No file_ids provided'}), 400
     
@@ -157,6 +204,12 @@ def batch_delete_files():
             t = db.session.get(Transcription, file_id)
             if not t:
                 errors.append(f'File {file_id} not found')
+                continue
+            if db_mode == 'private' and user_id and t.owner_id != user_id:
+                errors.append(f'Unauthorized to delete file {file_id}')
+                continue
+            if db_mode == 'global' and t.owner_id is not None:
+                errors.append(f'Unauthorized to delete file {file_id}')
                 continue
             
             # Remove file from uploads directory
@@ -185,8 +238,19 @@ def batch_delete_files():
 
 @app.route('/files/all', methods=['DELETE'])
 def delete_all_files():
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID')
+    if not user_id:
+        user_id = request.args.get('userId')
+    db_mode = request.args.get('dbMode', 'global')
+    if not db_mode and user_id:
+        db_mode = 'private'
     try:
-        files = Transcription.query.all()
+        query = Transcription.query
+        if db_mode == 'private' and user_id:
+            query = query.filter(Transcription.owner_id == user_id)
+        elif db_mode == 'global':
+            query = query.filter(Transcription.owner_id == None)
+        files = query.all()
         deleted_count = 0
         
         for t in files:
@@ -217,6 +281,12 @@ def delete_all_files():
 @app.route('/files/batch-transcribe', methods=['POST'])
 def batch_transcribe_files():
     data = request.get_json()
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID')
+    if not user_id:
+        user_id = data.get('userId')
+    db_mode = data.get('dbMode', 'global')
+    if not db_mode and user_id:
+        db_mode = 'private'
     if not data or 'file_ids' not in data:
         return jsonify({'error': 'No file_ids provided'}), 400
     
@@ -233,8 +303,11 @@ def batch_transcribe_files():
             if not t:
                 errors.append(f'File {file_id} not found')
                 continue
-            if t.transcription_status == 'transcribed':
-                errors.append(f'File {file_id} already transcribed')
+            if db_mode == 'private' and user_id and t.owner_id != user_id:
+                errors.append(f'Unauthorized to transcribe file {file_id}')
+                continue
+            if db_mode == 'global' and t.owner_id is not None:
+                errors.append(f'Unauthorized to transcribe file {file_id}')
                 continue
             file_path = os.path.join(UPLOAD_FOLDER, t.filename)
             if not os.path.exists(file_path):
@@ -340,9 +413,17 @@ def transcribe():
     file_content = file.read()
     file_hash = hashlib.sha256(file_content).hexdigest()
     file_size = len(file_content)
-    # Check for duplicate by filename
-    existing = Transcription.query.filter_by(filename=filename).first()
-    if existing and existing.file_hash == file_hash and existing.file_size == file_size and existing.transcription:
+    # --- DB Mode logic ---
+    db_mode = request.form.get('dbMode', 'private')
+    # Prefer Azure header for user ID if present
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID') or request.form.get('userId')
+    if db_mode == 'private' and user_id:
+        owner_id = user_id
+    else:
+        owner_id = None
+    # Check for duplicate by filename, file hash, file size, and owner_id
+    existing = Transcription.query.filter_by(filename=filename, file_hash=file_hash, file_size=file_size, owner_id=owner_id).first()
+    if existing and existing.transcription:
         # Return the existing transcription and saved segments
         segments_data = []
         if existing.segments:
@@ -366,7 +447,7 @@ def transcribe():
                 'end': 0
             }]
         return jsonify({'transcription': existing.transcription, 'segments': segments_data, 'filename': existing.filename}), 200
-    elif existing and existing.file_hash == file_hash and existing.file_size == file_size and not existing.transcription:
+    elif existing and not existing.transcription:
         # If file exists but is not transcribed, run transcription and update the record
         # Save uploaded file (overwrite)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -454,7 +535,7 @@ def transcribe():
             if temp_audio_created and os.path.exists(audio_path):
                 os.remove(audio_path)
         return jsonify({'transcription': existing.transcription, 'segments': json.loads(existing.segments), 'filename': existing.filename}), 200
-    elif existing and existing.file_hash == file_hash and existing.file_size == file_size:
+    elif existing:
         # Return empty transcription (should not happen, but for safety)
         return jsonify({'transcription': existing.transcription, 'segments': []}), 200
     elif existing:
@@ -548,7 +629,7 @@ def transcribe():
                         'start': 0,
                         'end': 0
                     }]
-                # Save transcription to database
+                # Save transcription to database with correct owner_id
                 new_transcription = Transcription(
                     filename=filename,
                     transcription=transcription,
@@ -556,7 +637,8 @@ def transcribe():
                     file_size=file_size,
                     segments=json.dumps(word_segments),
                     thumbnail=thumbnail_filename,
-                    transcription_status="transcribed"
+                    transcription_status="transcribed",
+                    owner_id=owner_id
                 )
                 db.session.add(new_transcription)
                 db.session.commit()

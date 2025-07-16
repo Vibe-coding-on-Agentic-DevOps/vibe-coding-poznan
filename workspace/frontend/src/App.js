@@ -30,6 +30,10 @@ function App() {
   const totalWordsRef = useRef(0); // NEW: store total word count
   const [fileId, setFileId] = useState(null); // Track fileId for download
   const [selectedDbFile, setSelectedDbFile] = useState(null); // Track selected DB file
+  // --- Azure AD user ID and DB mode ---
+  // TODO: Replace with actual Azure AD user ID extraction from your auth library
+  const userId = window.userId || 'demo-user-id'; // Replace with real user ID from auth
+  const [dbMode, setDbMode] = useState('private'); // 'private' or 'global'
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -69,6 +73,8 @@ function App() {
     if (fileInputRef.current) fileInputRef.current.blur();
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('dbMode', dbMode);
+    formData.append('userId', userId);
     try {
       const response = await fetch('/transcribe', {
         method: 'POST',
@@ -333,6 +339,17 @@ function App() {
 
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
+      {/* DB Mode Toggle */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+        <Form.Check
+          type="switch"
+          id="db-mode-switch"
+          label={dbMode === 'private' ? 'Private Database' : 'Global Database'}
+          checked={dbMode === 'private'}
+          onChange={() => setDbMode(dbMode === 'private' ? 'global' : 'private')}
+          style={{ color: '#e3e5e8', fontWeight: 500 }}
+        />
+      </div>
       <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4" style={{
         background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)',
         borderRadius: 10,
@@ -381,7 +398,7 @@ function App() {
         </Nav.Item>
       </Nav>
       {page === 'database-search' && <DatabaseSearch onTranscribeFile={handleTranscribeFileFromGallery} />}
-      {page === 'database' && <DatabaseGallery onTranscribeFile={handleTranscribeFileFromGallery} onFileDeleted={handleFileDeleted} />}
+      {page === 'database' && <DatabaseGallery onTranscribeFile={handleTranscribeFileFromGallery} onFileDeleted={handleFileDeleted} userId={userId} dbMode={dbMode} />}
       {page === 'transcribe' && (
         <>
           <h2
