@@ -53,13 +53,7 @@ Meeting Assistant lets you upload any meeting, lecture, interview, or other vide
 
 ## 🖼️ Demo
 
-Below are some screenshots showcasing the Meeting Assistant in action:
-
-![Demo 1](demo-screenshots/demo1.png)
-
-![Demo 2](demo-screenshots/demo2.png)
-
-![Demo 3](demo-screenshots/demo3.png)
+https://github.com/user-attachments/assets/1b761b5c-1456-4329-b8fb-3c52d194929c
 
 ## ✨ Features
 - Upload and transcribe meetings, lectures, interviews, and more in various formats (mp4, mkv, avi, wav, mp3, etc.)
