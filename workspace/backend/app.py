@@ -110,16 +110,22 @@ def add_file():
     file_content = file.read()
     file_hash = hashlib.sha256(file_content).hexdigest()
     file_size = len(file_content)
-    # Check for duplicate by filename
-    existing = Transcription.query.filter_by(filename=filename).first()
-    if existing and existing.file_hash == file_hash and existing.file_size == file_size:
-        return jsonify({'error': 'File already exists.'}), 409
-    elif existing:
+    # Check for duplicate only within the selected database (private/public+user)
+    if db_mode == 'private' and user_id:
+        owner_id = user_id
+    else:
+        owner_id = None
+    existing = Transcription.query.filter_by(filename=filename, file_hash=file_hash, file_size=file_size, owner_id=owner_id).first()
+    if existing:
+        return jsonify({'error': 'File already exists in this database.'}), 409
+    # If filename exists in this db, but is not a true duplicate, rename
+    existing_name = Transcription.query.filter_by(filename=filename, owner_id=owner_id).first()
+    if existing_name:
         base, ext = os.path.splitext(filename)
         i = 1
         while True:
             new_filename = f"{base}_{i}{ext}"
-            if not Transcription.query.filter_by(filename=new_filename).first():
+            if not Transcription.query.filter_by(filename=new_filename, owner_id=owner_id).first():
                 filename = new_filename
                 break
             i += 1
