@@ -397,7 +397,7 @@ function App() {
           }}>Database</Nav.Link>
         </Nav.Item>
       </Nav>
-      {page === 'database-search' && <DatabaseSearch onTranscribeFile={handleTranscribeFileFromGallery} />}
+      {page === 'database-search' && <DatabaseSearch onTranscribeFile={handleTranscribeFileFromGallery} dbMode={dbMode} userId={userId} />}
       {page === 'database' && <DatabaseGallery onTranscribeFile={handleTranscribeFileFromGallery} onFileDeleted={handleFileDeleted} userId={userId} dbMode={dbMode} />}
       {page === 'transcribe' && (
         <>

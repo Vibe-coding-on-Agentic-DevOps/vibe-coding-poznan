@@ -767,19 +767,37 @@ def ask():
 @app.route('/search', methods=['GET'])
 def search_transcriptions():
     query = request.args.get('q', '')
+    db_mode = request.args.get('dbMode', None)
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID') or request.args.get('userId')
+    # Fallback: if db_mode is not provided but user_id is present, default to private
+    if not db_mode and user_id:
+        db_mode = 'private'
+    if not db_mode:
+        db_mode = 'global'
     if not query:
         return jsonify({'results': []})
-    results = Transcription.query.filter(Transcription.transcription.ilike(f'%{query}%')).all()
+    trans_query = Transcription.query
+    if db_mode == 'private' and user_id:
+        trans_query = trans_query.filter(Transcription.owner_id == user_id)
+    elif db_mode == 'global':
+        trans_query = trans_query.filter(Transcription.owner_id == None)
+    results = trans_query.filter(Transcription.transcription.ilike(f'%{query}%')).all()
     return jsonify({'results': [t.to_dict() for t in results]})
 
 @app.route('/ask-database', methods=['POST'])
 def ask_database():
     data = request.get_json()
     question = data.get('question')
+    db_mode = data.get('dbMode', 'global')
+    user_id = request.headers.get('X-MS-CLIENT-PRINCIPAL-ID') or data.get('userId')
     if not question:
         return jsonify({'error': 'Question is required.'}), 400
-    # Gather all transcriptions and their sources
-    transcriptions = Transcription.query.all()
+    trans_query = Transcription.query
+    if db_mode == 'private' and user_id:
+        trans_query = trans_query.filter(Transcription.owner_id == user_id)
+    elif db_mode == 'global':
+        trans_query = trans_query.filter(Transcription.owner_id == None)
+    transcriptions = trans_query.all()
     all_transcripts = '\n\n'.join([t.transcription for t in transcriptions])
     sources = [
         {'id': t.id, 'filename': t.filename, 'created_at': t.created_at.isoformat() if t.created_at else None}

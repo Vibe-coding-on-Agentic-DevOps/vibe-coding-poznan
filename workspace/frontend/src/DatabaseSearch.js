@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Container, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 
 // Accept onTranscribeFile as a prop
-function DatabaseSearch({ onTranscribeFile }) {
+function DatabaseSearch({ onTranscribeFile, dbMode, userId }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,12 @@ function DatabaseSearch({ onTranscribeFile }) {
     setError('');
     setResults([]);
     try {
-      const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+      const params = new URLSearchParams({
+        q: query,
+        dbMode: dbMode || 'global',
+        userId: userId || ''
+      });
+      const response = await fetch(`/search?${params.toString()}`);
       const data = await response.json();
       if (response.ok) {
         setResults(data.results);
@@ -41,7 +46,11 @@ function DatabaseSearch({ onTranscribeFile }) {
       const response = await fetch('/ask-database', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: dbQuestion })
+        body: JSON.stringify({
+          question: dbQuestion,
+          dbMode: dbMode || 'global',
+          userId: userId || ''
+        })
       });
       const data = await response.json();
       if (response.ok) {
@@ -58,7 +67,7 @@ function DatabaseSearch({ onTranscribeFile }) {
 
   return (
     <Container className="mt-5" style={{ maxWidth: 900 }}>
-      <h4 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Transcription keyword Search</h4>
+      <h4 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Transcription keyword search</h4>
       <Form onSubmit={handleSearch} className="mb-4">
         <InputGroup>
           <Form.Control
