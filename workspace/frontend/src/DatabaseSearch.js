@@ -133,6 +133,7 @@ function DatabaseSearch({ onTranscribeFile, dbMode, userId }) {
       {dbAnswer && (
         <div style={{ background: '#23272b', color: '#f1f1f1', borderRadius: 8, padding: 16, marginTop: 12, fontSize: '1.1rem', maxWidth: 800, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
           <b>Answer:</b> {dbAnswer}
+          {/*
           {dbSources.length > 0 && (
             <div style={{ marginTop: 12, fontSize: '0.98rem', color: '#b0b0b0', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
               <b>Source{dbSources.length > 1 ? 's' : ''}:</b>{' '}
@@ -167,6 +168,7 @@ function DatabaseSearch({ onTranscribeFile, dbMode, userId }) {
               ))}
             </div>
           )}
+          */}
         </div>
       )}
     </Container>

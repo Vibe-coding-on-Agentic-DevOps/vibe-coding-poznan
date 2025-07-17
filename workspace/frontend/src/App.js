@@ -33,7 +33,17 @@ function App() {
   // --- Azure AD user ID and DB mode ---
   // TODO: Replace with actual Azure AD user ID extraction from your auth library
   const userId = window.userId || 'demo-user-id'; // Replace with real user ID from auth
-  const [dbMode, setDbMode] = useState('private'); // 'private' or 'global'
+  // Persist dbMode in localStorage
+  const getInitialDbMode = () => {
+    const saved = window.localStorage.getItem('dbMode');
+    return saved === 'global' ? 'global' : 'private';
+  };
+  const [dbMode, setDbMode] = useState(getInitialDbMode()); // 'private' or 'global'
+
+  // Update localStorage when dbMode changes
+  React.useEffect(() => {
+    window.localStorage.setItem('dbMode', dbMode);
+  }, [dbMode]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -340,15 +350,79 @@ function App() {
   return (
     <Container className="mt-5" style={{ maxWidth: 1200 }}>
       {/* DB Mode Toggle */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-        <Form.Check
-          type="switch"
-          id="db-mode-switch"
-          label={dbMode === 'private' ? 'Private Database' : 'Global Database'}
-          checked={dbMode === 'private'}
-          onChange={() => setDbMode(dbMode === 'private' ? 'global' : 'private')}
-          style={{ color: '#e3e5e8', fontWeight: 500 }}
-        />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12 }}>
+        <button
+          type="button"
+          aria-label="Toggle database mode"
+          onClick={() => setDbMode(dbMode === 'private' ? 'global' : 'private')}
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            background: '#23272b',
+            border: '2px solid #007bff',
+            borderRadius: 24,
+            padding: '0',
+            minWidth: 160,
+            height: 34,
+            cursor: 'pointer',
+            boxShadow: dbMode === 'private' ? '0 2px 8px #007bff33' : '0 2px 8px #222b',
+            transition: 'box-shadow 0.2s, background 0.2s',
+            fontWeight: 600,
+            fontSize: '1.02rem',
+            color: '#e3e5e8',
+            outline: 'none',
+            userSelect: 'none',
+            overflow: 'hidden',
+          }}
+        >
+          <span
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '0 22px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 20,
+              color: dbMode === 'global' ? '#fff' : '#e3e5e8',
+              zIndex: 2,
+              fontSize: '1.02rem',
+              transition: 'color 0.2s',
+            }}
+          >Global</span>
+          <span
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '0 22px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 20,
+              color: dbMode === 'private' ? '#fff' : '#e3e5e8',
+              zIndex: 2,
+              fontSize: '1.02rem',
+              transition: 'color 0.2s',
+            }}
+          >Private</span>
+          <span
+            style={{
+              position: 'absolute',
+              top: '0',
+              left: dbMode === 'global' ? 0 : '50%',
+              width: '50%',
+              height: '100%',
+              background: '#007bff',
+              borderRadius: 20,
+              boxShadow: '0 2px 8px #007bff33',
+              transition: 'left 0.55s cubic-bezier(.4,2,.3,1)',
+              zIndex: 1,
+            }}
+          ></span>
+        </button>
       </div>
       <Nav variant="tabs" activeKey={page} onSelect={setPage} className="mb-4" style={{
         background: 'linear-gradient(90deg, #343a40 0%, #495057 100%)',
